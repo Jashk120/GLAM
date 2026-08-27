@@ -1,0 +1,275 @@
+[
+  {
+    "id": "shop_small",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/shop_small.png",
+    "icon": "🏪",
+    "solid": true,
+    "metadata": {
+      "description": "Small corner shop — groceries and essentials. 1x1 tile building for town maps.",
+      "displayName": "Small Shop",
+      "category": "commercial"
+    }
+  },
+  {
+    "id": "shop_large",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/shop_large.png",
+    "icon": "🏬",
+    "solid": true,
+    "metadata": {
+      "description": "Large department shop with wider footprint. 2x1 tile building for town commerce.",
+      "displayName": "Large Shop",
+      "category": "commercial"
+    }
+  },
+  {
+    "id": "house_small",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/house_small.png",
+    "icon": "🏠",
+    "solid": true,
+    "metadata": {
+      "description": "Cozy small house — residential building with 1x1 footprint.",
+      "displayName": "Small House",
+      "category": "residential"
+    }
+  },
+  {
+    "id": "house_large",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/house_large.png",
+    "icon": "🏡",
+    "solid": true,
+    "metadata": {
+      "description": "Spacious family house — 2x1 tile residential building.",
+      "displayName": "Large House",
+      "category": "residential"
+    }
+  },
+  {
+    "id": "school_main",
+    "type": "building",
+    "bundle": "school",
+    "sprite": "sprites/buildings/school_main.png",
+    "icon": "🏫",
+    "solid": true,
+    "metadata": {
+      "description": "Main school building — central educational hub for school-themed maps. 2x2 footprint.",
+      "displayName": "Main School",
+      "category": "education"
+    }
+  },
+  {
+    "id": "bank",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/bank.png",
+    "icon": "🏦",
+    "solid": true,
+    "metadata": {
+      "description": "Town bank — handles currency and savings lessons. 1x1 solid building.",
+      "displayName": "Bank",
+      "category": "commercial"
+    }
+  },
+  {
+    "id": "hospital",
+    "type": "building",
+    "bundle": "town",
+    "sprite": "sprites/buildings/hospital.png",
+    "icon": "🏥",
+    "solid": true,
+    "metadata": {
+      "description": "Hospital building for town maps — health and community tile. 2x1 footprint.",
+      "displayName": "Hospital",
+      "category": "civic"
+    }
+  },
+  {
+    "id": "tree_oak",
+    "type": "prop",
+    "bundle": "forest",
+    "sprite": "sprites/props/tree_oak.png",
+    "icon": "🌳",
+    "solid": true,
+    "metadata": {
+      "description": "Large oak tree — dense foliage prop that blocks movement. Forest and common use.",
+      "displayName": "Oak Tree",
+      "category": "vegetation"
+    }
+  },
+  {
+    "id": "tree_pine",
+    "type": "prop",
+    "bundle": "forest",
+    "sprite": "sprites/props/tree_pine.png",
+    "icon": "🌲",
+    "solid": true,
+    "metadata": {
+      "description": "Tall pine tree — evergreen prop with solid collision for forest maps.",
+      "displayName": "Pine Tree",
+      "category": "vegetation"
+    }
+  },
+  {
+    "id": "rock_boulder",
+    "type": "prop",
+    "bundle": "common",
+    "sprite": "sprites/props/rock_boulder.png",
+    "icon": "🪨",
+    "solid": true,
+    "metadata": {
+      "description": "Large boulder rock — natural obstacle prop for any biome.",
+      "displayName": "Boulder",
+      "category": "terrain"
+    }
+  },
+  {
+    "id": "sign_wood",
+    "type": "prop",
+    "bundle": "common",
+    "sprite": "sprites/props/sign_wood.png",
+    "icon": "🪧",
+    "solid": false,
+    "metadata": {
+      "description": "Wooden signpost — non-solid decoration for dialogue or information hints.",
+      "displayName": "Wooden Sign",
+      "category": "decoration"
+    }
+  },
+  {
+    "id": "character_teacher",
+    "type": "character",
+    "bundle": "school",
+    "sprite": "sprites/characters/teacher.png",
+    "icon": "🧑‍🏫",
+    "solid": true,
+    "metadata": {
+      "description": "Teacher character — classroom guide who delivers dialogue and quiz interactions.",
+      "displayName": "Teacher",
+      "category": "npc"
+    }
+  },
+  {
+    "id": "character_ranger",
+    "type": "character",
+    "bundle": "forest",
+    "sprite": "sprites/characters/ranger.png",
+    "icon": "🧑‍🌾",
+    "solid": true,
+    "metadata": {
+      "description": "Park ranger character — forest guide for wildlife safety scenarios.",
+      "displayName": "Ranger",
+      "category": "npc"
+    }
+  },
+  {
+    "id": "character_shopkeeper",
+    "type": "character",
+    "bundle": "town",
+    "sprite": "sprites/characters/shopkeeper.png",
+    "icon": "🧑‍💼",
+    "solid": true,
+    "metadata": {
+      "description": "Shopkeeper character — runs shop interactions and handles currency exchanges.",
+      "displayName": "Shopkeeper",
+      "category": "npc"
+    }
+  },
+  {
+    "id": "character_student",
+    "type": "character",
+    "bundle": "school",
+    "sprite": "sprites/characters/student.png",
+    "icon": "🧑‍🎓",
+    "solid": true,
+    "metadata": {
+      "description": "Student character — peer NPC for school-yard interactions and quizzes.",
+      "displayName": "Student",
+      "category": "npc"
+    }
+  },
+  {
+    "id": "wild_animal_bear",
+    "type": "character",
+    "bundle": "forest",
+    "sprite": "sprites/characters/bear.png",
+    "icon": "🐻",
+    "solid": false,
+    "metadata": {
+      "description": "Wild bear animal — non-solid wildlife encounter that triggers auto quiz on proximity.",
+      "displayName": "Wild Bear",
+      "category": "wildlife"
+    }
+  },
+  {
+    "id": "wild_animal_fox",
+    "type": "character",
+    "bundle": "forest",
+    "sprite": "sprites/characters/fox.png",
+    "icon": "🦊",
+    "solid": false,
+    "metadata": {
+      "description": "Wild fox animal — forest wildlife encounter for safety lessons, proximity-triggered.",
+      "displayName": "Wild Fox",
+      "category": "wildlife"
+    }
+  },
+  {
+    "id": "tile_grass",
+    "type": "tile",
+    "bundle": "common",
+    "sprite": "sprites/tiles/grass.png",
+    "icon": "🟩",
+    "solid": false,
+    "metadata": {
+      "description": "Grass ground tile — default walkable base tile for town and forest maps.",
+      "displayName": "Grass Tile",
+      "category": "ground"
+    }
+  },
+  {
+    "id": "tile_path",
+    "type": "tile",
+    "bundle": "common",
+    "sprite": "sprites/tiles/path.png",
+    "icon": "🟫",
+    "solid": false,
+    "metadata": {
+      "description": "Dirt path tile — walkable trail marking roads and walkways.",
+      "displayName": "Path Tile",
+      "category": "ground"
+    }
+  },
+  {
+    "id": "object_chest",
+    "type": "object",
+    "bundle": "common",
+    "sprite": "sprites/objects/chest.png",
+    "icon": "📦",
+    "solid": false,
+    "metadata": {
+      "description": "Treasure chest object — interactable container for information or rewards.",
+      "displayName": "Chest",
+      "category": "container"
+    }
+  },
+  {
+    "id": "object_coin",
+    "type": "object",
+    "bundle": "common",
+    "sprite": "sprites/objects/coin.png",
+    "icon": "🪙",
+    "solid": false,
+    "metadata": {
+      "description": "Coin pickup object — collectible currency decoration or math prompt anchor.",
+      "displayName": "Coin",
+      "category": "collectible"
+    }
+  }
+]

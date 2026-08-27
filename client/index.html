@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GLAM — Scenario Engine</title>
+</head>
+<body>
+  <h1>🎮 GLAM — Scenario Engine</h1>
+  <div id="sub">One engine — any lesson. Scenarios are just JSON.</div>
+
+  <!-- Teacher Panel -->
+  <section id="teacherPanel">
+    <div class="teacherCard">
+      <div class="teacherHeader">
+        <span class="teacherIcon">🧑‍🏫</span>
+        <div>
+          <h2>Teacher — Generate Scenario</h2>
+          <p class="teacherHint">Describe a lesson. AI generates a playable world. Streaming cache warms automatically.</p>
+        </div>
+      </div>
+      <textarea id="promptInput" rows="3" placeholder="Create a small town where students learn basic money management."></textarea>
+      <div class="teacherRow">
+        <button id="generateBtn" class="primaryBtn">✨ Generate Scenario</button>
+        <span id="genStatus" class="genStatus"></span>
+      </div>
+      <div id="genError" class="genError"></div>
+      <div id="assetStatus" class="assetStatus">Assets cached: —</div>
+    </div>
+  </section>
+
+  <div id="scenarioTitle"></div>
+  <div id="topbar">
+    <select id="scenarioSelect">
+      <option value="/scenarios/example.json">💰 Money Management Town — Example</option>
+    </select>
+    <button id="restartBtn">🔄 Restart</button>
+    <div id="statsBar"></div>
+  </div>
+  <div id="main">
+    <div id="gameWrap">
+      <div id="game"></div>
+      <div id="prompt"></div>
+    </div>
+    <div id="missionPanel">
+      <h3>📋 Objectives</h3>
+      <div id="missionList"></div>
+    </div>
+  </div>
+  <div id="controlsHint">Arrow keys / WASD to move · E to interact · Walk next to an entity to trigger</div>
+  <div id="modalOverlay"><div id="modal"></div></div>
+  <div id="toast"></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

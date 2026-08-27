@@ -1,0 +1,18 @@
+.env
+server/.env
+server/tmp/
+server/tmp/main
+server/build-errors.log
+client/node_modules/
+client/dist/
+scenarios/generated_*.json
+/tmp/
+.DS_Store
+
+# demo prototypes — not part of mono-repo MVP
+pokemon-style-demo.html
+scenario-engine-demo.html
+
+# air + go build
+tmp/
+.omo/

@@ -1,0 +1,259 @@
+{
+  "id": "money-management-town",
+  "title": "Money Management Town",
+  "version": "1.0",
+  "world": {
+    "template": "town",
+    "spawn": {
+      "x": 7,
+      "y": 9
+    },
+    "size": {
+      "cols": 15,
+      "rows": 12
+    },
+    "theme": "town"
+  },
+  "characters": [
+    {
+      "id": "ms_rao",
+      "name": "Ms. Rao",
+      "profession": "Teacher",
+      "appearance": {
+        "spriteId": "character_teacher",
+        "color": "#4a90d9"
+      },
+      "position": {
+        "x": 7,
+        "y": 2
+      },
+      "interaction": {
+        "type": "dialogue",
+        "text": "Welcome to Money Management Town! You have 40 coins. Visit the shops, but try to save at least 10 coins by the end of the day. Talk to the shopkeeper for groceries, visit the bank for a savings challenge, and check the chest for tips!",
+        "speaker": "Ms. Rao",
+        "cooldown": 2000,
+        "auto": false
+      }
+    },
+    {
+      "id": "mr_patel",
+      "name": "Mr. Patel",
+      "profession": "Shopkeeper",
+      "appearance": {
+        "spriteId": "character_shopkeeper",
+        "color": "#d98c4a"
+      },
+      "position": {
+        "x": 3,
+        "y": 4
+      },
+      "interaction": {
+        "type": "shop",
+        "currency": "coins",
+        "items": [
+          {
+            "id": "bread",
+            "name": "Bread",
+            "price": 6,
+            "icon": "🍞",
+            "description": "Fresh loaf — a daily essential."
+          },
+          {
+            "id": "milk",
+            "name": "Milk",
+            "price": 5,
+            "icon": "🥛",
+            "description": "Carton of milk — good for growing minds."
+          },
+          {
+            "id": "apple",
+            "name": "Apple",
+            "price": 3,
+            "icon": "🍎",
+            "description": "Crisp red apple — healthy and cheap."
+          }
+        ],
+        "cooldown": 1000,
+        "auto": false
+      }
+    },
+    {
+      "id": "aisha",
+      "name": "Aisha",
+      "profession": "Student",
+      "appearance": {
+        "spriteId": "character_student",
+        "color": "#7bc67e"
+      },
+      "position": {
+        "x": 10,
+        "y": 5
+      },
+      "interaction": {
+        "type": "mcq",
+        "question": "You earn 15 coins allowance and spend 7 coins on a puzzle. How many coins do you have left? What is the best next step?",
+        "options": [
+          {
+            "text": "8 coins — save them for later",
+            "correct": true,
+            "explanation": "15 - 7 = 8. Saving is the wise choice here."
+          },
+          {
+            "text": "22 coins — I added instead of subtracting",
+            "correct": false,
+            "explanation": "That would be 15 + 7. Check whether you should add or subtract spending."
+          },
+          {
+            "text": "7 coins — I subtracted twice",
+            "correct": false,
+            "explanation": "Only subtract the 7 once."
+          }
+        ],
+        "allowRetry": true,
+        "cooldown": 3000,
+        "auto": false,
+        "onCorrect": {
+          "toast": "✅ Great job! You saved 8 coins."
+        },
+        "onWrong": {
+          "toast": "❌ Not quite — try again! Hint: subtract what you spent."
+        }
+      }
+    }
+  ],
+  "buildings": [
+    {
+      "id": "grocery_shop",
+      "typeAssetId": "shop_small",
+      "position": {
+        "x": 3,
+        "y": 6
+      },
+      "width": 1,
+      "height": 1,
+      "interaction": {
+        "type": "information",
+        "title": "Grocery Tips",
+        "content": "Plan before you shop: make a list, compare prices, and prioritize needs over wants. A loaf of bread (6 coins) plus milk (5 coins) costs 11 coins total.",
+        "image": "sprites/info/grocery_tips.png",
+        "cooldown": 2000,
+        "auto": false
+      }
+    },
+    {
+      "id": "town_bank",
+      "typeAssetId": "bank",
+      "position": {
+        "x": 7,
+        "y": 6
+      },
+      "width": 1,
+      "height": 1,
+      "interaction": {
+        "type": "math",
+        "question": "You deposited 40 coins and spent 6 on bread, 5 on milk, and 9 on a puzzle. How many coins remain? (Enter the number)",
+        "answer": 20,
+        "tolerance": 0,
+        "hint": "Add up all spending first: 6 + 5 + 9 = 20, then subtract from 40.",
+        "cooldown": 4000,
+        "auto": false,
+        "onCorrect": {
+          "stat": "coins",
+          "delta": 0,
+          "toast": "✅ Correct! 40 - 20 = 20 coins left. Keep saving!"
+        },
+        "onWrong": {
+          "toast": "❌ Try again. Sum your purchases, then subtract from 40."
+        }
+      }
+    },
+    {
+      "id": "family_house",
+      "typeAssetId": "house_large",
+      "position": {
+        "x": 11,
+        "y": 3
+      },
+      "width": 2,
+      "height": 1,
+      "interaction": {
+        "type": "dialogue",
+        "text": "This is your home! Return here when you've finished shopping and saved at least 10 coins. Good money habits start at home.",
+        "speaker": "Home",
+        "cooldown": 3000,
+        "auto": true
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "treasure_chest",
+      "assetId": "object_chest",
+      "position": {
+        "x": 5,
+        "y": 9
+      },
+      "interaction": {
+        "type": "information",
+        "title": "Savings Challenge",
+        "content": "Goal: End with at least 10 coins. Tip: You started with 40. If you buy bread (6) and an apple (3), you spend 9 and have 31 left — well above the goal. Choose wisely!",
+        "cooldown": 2000,
+        "auto": false
+      }
+    },
+    {
+      "id": "coin_tip",
+      "assetId": "object_coin",
+      "position": {
+        "x": 9,
+        "y": 9
+      },
+      "interaction": {
+        "type": "dialogue",
+        "text": "💰 Remember: every coin you don't spend is a coin saved. Aim to save 10+ by the end!",
+        "speaker": "Coin Guide",
+        "cooldown": 5000,
+        "auto": true
+      }
+    }
+  ],
+  "missions": [
+    {
+      "id": "talk_teacher",
+      "title": "Get your budget",
+      "description": "Talk to Ms. Rao to learn your starting budget and goal.",
+      "trigger": {
+        "entityId": "ms_rao"
+      },
+      "done": false
+    },
+    {
+      "id": "buy_groceries",
+      "title": "Buy groceries",
+      "description": "Buy at least one item from Mr. Patel's shop.",
+      "trigger": {
+        "entityId": "mr_patel"
+      },
+      "done": false
+    },
+    {
+      "id": "pass_quiz",
+      "title": "Ace the savings quiz",
+      "description": "Answer Aisha's money math question correctly.",
+      "trigger": {
+        "entityId": "aisha"
+      },
+      "done": false
+    },
+    {
+      "id": "save_coins",
+      "title": "Save wisely",
+      "description": "End the day with at least 10 coins remaining. Visit the bank and solve the final math challenge.",
+      "trigger": {
+        "entityId": "town_bank"
+      },
+      "checkAtEnd": true,
+      "done": false
+    }
+  ]
+}
