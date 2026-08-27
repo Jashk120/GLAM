@@ -45,11 +45,25 @@ export class TeacherUI {
     this.opts.generateBtn.addEventListener("click", () => {
       void this.handleGenerate();
     });
+    const stopGameKeys = (e: KeyboardEvent) => {
+      e.stopPropagation();
+      const navKeys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "w", "a", "s", "d", "W", "A", "S", "D", "e", "E"];
+      if (navKeys.includes(e.key) || e.key === " " || e.key === "Escape") {
+        e.stopImmediatePropagation?.();
+      }
+    };
     this.opts.promptInput.addEventListener("keydown", (e) => {
+      stopGameKeys(e);
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
         void this.handleGenerate();
       }
+    });
+    this.opts.promptInput.addEventListener("focus", () => {
+      document.body.classList.add("teacher-typing");
+    });
+    this.opts.promptInput.addEventListener("blur", () => {
+      document.body.classList.remove("teacher-typing");
     });
   }
 

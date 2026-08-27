@@ -7,10 +7,13 @@ import { ObjectRenderer } from "../entities/ObjectRenderer";
 import { resolveAsset } from "./AssetResolver";
 import { MissionManager } from "./MissionManager";
 import { InteractionManager } from "../interactions/InteractionManager";
+import { getLayout, isSolidTile, isWalkable } from "../world/layouts";
+import type { WorldLayout } from "../world/layouts";
 
 export class GameScene extends Phaser.Scene {
   private scenario!: Scenario;
   private worldRenderer!: WorldRenderer;
+  private layout: WorldLayout | null = null;
   private entities: EntityRef[] = [];
   private player!: Phaser.GameObjects.Container;
   private playerPos!: { x: number; y: number };
@@ -46,7 +49,8 @@ export class GameScene extends Phaser.Scene {
     this.stats = { coins: 40, lives: 3, score: 0 };
     this.opts.titleEl.textContent = scenario.title;
     this.entities = this.buildEntityRefs(scenario);
-    this.worldRenderer = new WorldRenderer(scenario.world);
+    this.layout = getLayout(scenario.world.template, scenario.world.size);
+    this.worldRenderer = new WorldRenderer(scenario.world, this.layout);
     const { w, h } = this.worldRenderer.getPixelSize();
     this.scale.resize(w, h);
     this.cameras.main.setBounds(0, 0, w, h);
@@ -69,7 +73,18 @@ export class GameScene extends Phaser.Scene {
       }
       if (ctr) this.containers.push(ctr);
     }
-    this.playerPos = { ...scenario.world.spawn };
+    let spawn = { ...scenario.world.spawn };
+    if (this.layout) {
+      const kind = this.layout.tilemap[spawn.y]?.[spawn.x];
+      if (kind && isSolidTile(kind)) {
+        const adj = this.findNearestWalkable(spawn.x, spawn.y);
+        if (adj) {
+          console.warn(`Spawn (${spawn.x},${spawn.y}) on solid ${kind}, moved to (${adj.x},${adj.y})`);
+          spawn = adj;
+        }
+      }
+    }
+    this.playerPos = { ...spawn };
     this.player = this.createPlayerSprite(this.playerPos.x, this.playerPos.y);
     this.renderStats();
     this.missionManager = new MissionManager(scenario.missions, this.opts.missionList, (msg, ok) => this.showToast(msg, ok), () => this.stats);
@@ -80,6 +95,35 @@ export class GameScene extends Phaser.Scene {
       onMissionTrigger: (entityId) => { this.missionManager.completeByEntity(entityId); },
     });
     this.interactionManager.tick();
+  }
+  private findNearestWalkable(sx: number, sy: number): { x: number; y: number } | null {
+    if (!this.layout) return null;
+    const { cols, rows } = this.scenario.world.size;
+    const tilemap = this.layout.tilemap;
+    const maxDist = Math.max(cols, rows);
+    for (let d = 1; d <= maxDist; d++) {
+      for (let dy = -d; dy <= d; dy++) {
+        for (let dx = -d; dx <= d; dx++) {
+          if (Math.abs(dx) !== d && Math.abs(dy) !== d) continue;
+          const nx = sx + dx;
+          const ny = sy + dy;
+          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+          const k = tilemap[ny]?.[nx];
+          if (!k || !isWalkable(k)) continue;
+          let blocked = false;
+          for (const e of this.entities) {
+            if (!e.solid) continue;
+            for (let ex = 0; ex < e.width; ex++) {
+              for (let ey = 0; ey < e.height; ey++) {
+                if (e.position.x + ex === nx && e.position.y + ey === ny) blocked = true;
+              }
+            }
+          }
+          if (!blocked) return { x: nx, y: ny };
+        }
+      }
+    }
+    return null;
   }
   private buildEntityRefs(scenario: Scenario): EntityRef[] {
     const out: EntityRef[] = [];
@@ -107,15 +151,24 @@ export class GameScene extends Phaser.Scene {
   private isSolidAt(x: number, y: number): boolean {
     const { cols, rows } = this.scenario.world.size;
     if (x < 0 || y < 0 || x >= cols || y >= rows) return true;
+    if (this.worldRenderer && this.worldRenderer.isSolidAt(x, y)) return true;
     for (const e of this.entities) {
       if (!e.solid) continue;
       for (let dx = 0; dx < e.width; dx++) for (let dy = 0; dy < e.height; dy++) if (e.position.x + dx === x && e.position.y + dy === y) return true;
     }
     return false;
   }
+  private isTyping(): boolean {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el) return false;
+    if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return true;
+    if (el.isContentEditable) return true;
+    return false;
+  }
   override update(time: number, _delta: number): void {
     if (!this.scenario || !this.interactionManager) return;
     if (this.interactionManager.isModalOpen()) return;
+    if (this.isTyping()) return;
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) { this.interactionManager.handleInteractKey(); return; }
     if (time < this.moveCooldown) return;
     let dx = 0, dy = 0;

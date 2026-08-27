@@ -1,0 +1,127 @@
+{
+  "id": "town-roads-plots",
+  "title": "Town — Roads & Open Plots Demo",
+  "version": "1.0",
+  "world": {
+    "template": "town",
+    "spawn": { "x": 7, "y": 9 },
+    "size": { "cols": 15, "rows": 12 },
+    "theme": "town"
+  },
+  "characters": [
+    {
+      "id": "mayor_lee",
+      "name": "Mayor Lee",
+      "profession": "Mayor",
+      "appearance": { "spriteId": "character_teacher", "color": "#4a90d9" },
+      "position": { "x": 2, "y": 2 },
+      "plot": "plot_1",
+      "interaction": {
+        "type": "dialogue",
+        "text": "Welcome to Plot Town! Roads are at x=5, x=10 and y=4, y=8. Each block between roads is a plot — build anything inside plots, not on roads.",
+        "speaker": "Mayor Lee"
+      }
+    },
+    {
+      "id": "shopkeeper",
+      "name": "Shopkeeper",
+      "profession": "Shopkeeper",
+      "appearance": { "spriteId": "character_shopkeeper", "color": "#d98c4a" },
+      "position": { "x": 7, "y": 2 },
+      "plot": "plot_2",
+      "interaction": {
+        "type": "shop",
+        "currency": "coins",
+        "items": [
+          { "id": "apple", "name": "Apple", "price": 3, "icon": "🍎" },
+          { "id": "bread", "name": "Bread", "price": 6, "icon": "🍞" }
+        ]
+      }
+    }
+  ],
+  "buildings": [
+    {
+      "id": "hospital1",
+      "typeAssetId": "hospital",
+      "position": { "x": 1, "y": 1 },
+      "plot": "plot_1",
+      "width": 2,
+      "height": 1,
+      "interaction": {
+        "type": "information",
+        "title": "City Hospital",
+        "content": "Hospital sits on plot_1 (North West) — open grass block surrounded by roads. Heal and learn health tips here."
+      }
+    },
+    {
+      "id": "bank1",
+      "typeAssetId": "bank",
+      "position": { "x": 12, "y": 1 },
+      "plot": "plot_3",
+      "interaction": {
+        "type": "math",
+        "question": "Hospital visited 12 patients, 5 left. How many remain?",
+        "answer": 7,
+        "hint": "12 - 5 = ?"
+      }
+    },
+    {
+      "id": "house1",
+      "typeAssetId": "house_large",
+      "position": { "x": 2, "y": 10 },
+      "plot": "plot_4",
+      "width": 2,
+      "height": 1,
+      "interaction": {
+        "type": "dialogue",
+        "text": "Home plot South West — safe place to rest after shopping!",
+        "speaker": "Home"
+      }
+    },
+    {
+      "id": "shop_small_1",
+      "typeAssetId": "shop_small",
+      "position": { "x": 7, "y": 10 },
+      "plot": "plot_5",
+      "interaction": {
+        "type": "mcq",
+        "question": "Which is the best way to cross the town roads safely?",
+        "options": [
+          { "text": "Walk on roads, stay on path", "correct": true, "explanation": "Roads are walkable paths." },
+          { "text": "Walk through buildings", "correct": false },
+          { "text": "Block the road with a house", "correct": false }
+        ],
+        "allowRetry": true
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "sign_plots",
+      "assetId": "sign_wood",
+      "position": { "x": 12, "y": 10 },
+      "plot": "plot_6",
+      "interaction": {
+        "type": "information",
+        "title": "Plots Guide",
+        "content": "Town has 6 plots: plot_1..plot_6 (North/South × West/Central/East). Any building/character inside a plot is valid. Example: building{type:hospital, plot:1} -> position inside plot_1 bounds."
+      }
+    },
+    {
+      "id": "chest1",
+      "assetId": "object_chest",
+      "position": { "x": 13, "y": 2 },
+      "plot": "plot_3",
+      "interaction": {
+        "type": "dialogue",
+        "text": "Chest found in North East plot!",
+        "speaker": "Chest"
+      }
+    }
+  ],
+  "missions": [
+    { "id": "visit_mayor", "title": "Meet the Mayor", "description": "Talk to Mayor Lee in plot_1.", "trigger": { "entityId": "mayor_lee" } },
+    { "id": "visit_hospital", "title": "Visit Hospital plot_1", "description": "Enter the hospital on plot_1.", "trigger": { "entityId": "hospital1" } },
+    { "id": "shop_quiz", "title": "Shop Quiz", "description": "Answer shop quiz on plot_5.", "trigger": { "entityId": "shop_small_1" } }
+  ]
+}

@@ -61,5 +61,16 @@ select:focus, button:focus { outline: 2px solid #ffd700; }
 #mathInput:focus { outline: 2px solid #ffd700; border-color: #ffd700; }
 .hint { font-size: 12px; opacity: 0.8; margin-bottom: 8px; color: #ffd700; }
 #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #2e7d32; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: none; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.4); max-width: 90vw; text-align: center; }
+body.teacher-typing #gameWrap { opacity: 0.45; filter: saturate(0.6) blur(1px); pointer-events: none; transition: opacity 0.18s, filter 0.18s; }
+body.teacher-typing #controlsHint { opacity: 0.25; }
+body.teacher-typing #promptInput { box-shadow: 0 0 0 3px rgba(255,215,0,0.22); }
+body.teacher-typing #gameWrap::after {
+  content: "✏️ typing — game paused";
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.35);
+  color: #ffd700; font-weight: 800; font-size: 13px; letter-spacing: 0.3px;
+  backdrop-filter: blur(2px);
+}
 #controlsHint { margin-top: 10px; font-size: 11px; opacity: 0.55; text-align: center; }
 #scenarioTitle { font-size: 13px; opacity: 0.8; margin-bottom: 4px; color: #ffd700; }

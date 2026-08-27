@@ -200,6 +200,7 @@ type Character struct {
 	Profession  *string      `json:"profession,omitempty"`
 	Appearance  *Appearance  `json:"appearance,omitempty"`
 	Position    Position     `json:"position"`
+	Plot        *string      `json:"plot,omitempty"`
 	Interaction *Interaction `json:"interaction,omitempty"`
 }
 
@@ -209,6 +210,7 @@ type Building struct {
 	Position    Position     `json:"position"`
 	Width       *int         `json:"width,omitempty"`
 	Height      *int         `json:"height,omitempty"`
+	Plot        *string      `json:"plot,omitempty"`
 	Interaction *Interaction `json:"interaction,omitempty"`
 }
 
@@ -216,6 +218,7 @@ type ObjectEntity struct {
 	ID          string       `json:"id"`
 	AssetID     string       `json:"assetId"`
 	Position    Position     `json:"position"`
+	Plot        *string      `json:"plot,omitempty"`
 	Interaction *Interaction `json:"interaction,omitempty"`
 }
 

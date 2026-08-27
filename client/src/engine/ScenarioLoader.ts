@@ -69,6 +69,9 @@ function validateScenarioObject(obj: unknown): asserts obj is Scenario {
       inBounds(c["position"] as unknown as Position, size),
       `characters[${i}].position out of bounds`,
     );
+    if (c["plot"] !== undefined) {
+      assert(typeof c["plot"] === "string" && /^[a-z0-9][a-z0-9_-]*$/.test(c["plot"] as string), `characters[${i}].plot must match ^[a-z0-9][a-z0-9_-]*$`);
+    }
     if (c["appearance"] && isRecord(c["appearance"])) {
       const ap = c["appearance"] as Record<string, unknown>;
       if (ap["spriteId"]) {
@@ -87,6 +90,9 @@ function validateScenarioObject(obj: unknown): asserts obj is Scenario {
     assert(hasAsset(b["typeAssetId"] as string), `buildings[${i}].typeAssetId "${b["typeAssetId"] as string}" not in registry`);
     validatePosition(b["position"], `buildings[${i}].position`);
     assert(inBounds(b["position"] as unknown as Position, size), `buildings[${i}].position out of bounds`);
+    if (b["plot"] !== undefined) {
+      assert(typeof b["plot"] === "string" && /^[a-z0-9][a-z0-9_-]*$/.test(b["plot"] as string), `buildings[${i}].plot must match ^[a-z0-9][a-z0-9_-]*$`);
+    }
   }
 
   const objects = r["objects"] as unknown[];
@@ -98,6 +104,9 @@ function validateScenarioObject(obj: unknown): asserts obj is Scenario {
     assert(hasAsset(o["assetId"] as string), `objects[${i}].assetId "${o["assetId"] as string}" not in registry`);
     validatePosition(o["position"], `objects[${i}].position`);
     assert(inBounds(o["position"] as unknown as Position, size), `objects[${i}].position out of bounds`);
+    if (o["plot"] !== undefined) {
+      assert(typeof o["plot"] === "string" && /^[a-z0-9][a-z0-9_-]*$/.test(o["plot"] as string), `objects[${i}].plot must match ^[a-z0-9][a-z0-9_-]*$`);
+    }
   }
 
   const missions = r["missions"] as unknown[];

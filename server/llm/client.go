@@ -46,17 +46,34 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 
 	systemPrompt := BuildSystemPrompt(schemaJSON, registryJSON)
 
-	// Build request body matching Responses API shape
+	var schemaObj interface{}
+	if err := json.Unmarshal(schemaJSON, &schemaObj); err != nil {
+		return "", fmt.Errorf("invalid schema JSON: %w", err)
+	}
+
 	reqBody := map[string]interface{}{
-		"model": c.Model,
+		"model":        c.Model,
+		"instructions": systemPrompt,
 		"input": []map[string]interface{}{
-			{"role": "system", "content": systemPrompt},
-			{"role": "user", "content": prompt},
+			{
+				"role": "user",
+				"content": []map[string]interface{}{
+					{"type": "input_text", "text": prompt},
+				},
+			},
 		},
 		"stream": false,
+		"store":  false,
+		"reasoning": map[string]interface{}{
+			"effort": "minimal",
+		},
+		"max_output_tokens": 6000,
 		"text": map[string]interface{}{
 			"format": map[string]interface{}{
-				"type": "json_object",
+				"type":   "json_schema",
+				"name":   "glam_scenario",
+				"schema": schemaObj,
+				"strict": false,
 			},
 		},
 	}
@@ -149,20 +166,27 @@ func extractText(body []byte) (string, error) {
 		return "", fmt.Errorf("parse response JSON: %w; body: %s", err, truncate(string(body), 2000))
 	}
 
-	// Path 1: output[0].content[0].text (Responses API)
 	if out, ok := raw["output"].([]interface{}); ok && len(out) > 0 {
-		if m, ok := out[0].(map[string]interface{}); ok {
-			if content, ok := m["content"].([]interface{}); ok && len(content) > 0 {
-				if cm, ok := content[0].(map[string]interface{}); ok {
-					if t, ok := cm["text"].(string); ok && t != "" {
-						return t, nil
-					}
-					if t, ok := cm["output_text"].(string); ok && t != "" {
-						return t, nil
+		for _, item := range out {
+			m, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			if m["type"] == "reasoning" {
+				continue
+			}
+			if content, ok := m["content"].([]interface{}); ok {
+				for _, c := range content {
+					if cm, ok := c.(map[string]interface{}); ok {
+						if t, ok := cm["text"].(string); ok && t != "" {
+							return t, nil
+						}
+						if t, ok := cm["output_text"].(string); ok && t != "" {
+							return t, nil
+						}
 					}
 				}
 			}
-			// sometimes content is directly string
 			if t, ok := m["text"].(string); ok && t != "" {
 				return t, nil
 			}

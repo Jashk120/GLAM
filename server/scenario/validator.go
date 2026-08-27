@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+
+	"glam/server/world"
 )
 
 // ValidActivityTypes is the allowed interaction types.
@@ -154,6 +156,127 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 	}
 	for _, o := range sc.Objects {
 		checkPosition(fmt.Sprintf("object %q", o.ID), o.Position)
+	}
+
+	if layout := world.GetLayout(sc.World.Template, cols, rows); layout != nil {
+		if sc.World.Spawn.X >= 0 && sc.World.Spawn.X < cols && sc.World.Spawn.Y >= 0 && sc.World.Spawn.Y < rows {
+			kind := layout.Tilemap[sc.World.Spawn.Y][sc.World.Spawn.X]
+			if world.IsSolidTile(kind) {
+				errs = append(errs, fmt.Sprintf("world.spawn at (%d,%d) is on solid tile %q (tree/water) — spawn must be walkable (grass/path)", sc.World.Spawn.X, sc.World.Spawn.Y, kind))
+			}
+		}
+		plotDesc := ""
+		if len(layout.Plots) > 0 {
+			parts := make([]string, 0, len(layout.Plots))
+			for _, p := range layout.Plots {
+				parts = append(parts, fmt.Sprintf("%s(%d,%d,%d,%d)", p.ID, p.X, p.Y, p.W, p.H))
+			}
+			plotDesc = strings.Join(parts, " ")
+		}
+		checkLayoutEntity := func(label string, pos Position, w, h int) {
+			if pos.X < 0 || pos.X >= cols || pos.Y < 0 || pos.Y >= rows {
+				return
+			}
+			kind := layout.Tilemap[pos.Y][pos.X]
+			if world.IsSolidTile(kind) {
+				errs = append(errs, fmt.Sprintf("entity %s at (%d,%d) is on solid tile %q (tree/water)", label, pos.X, pos.Y, kind))
+			}
+			if w > 1 || h > 1 {
+				for dy := 0; dy < h; dy++ {
+					for dx := 0; dx < w; dx++ {
+						xx := pos.X + dx
+						yy := pos.Y + dy
+						if xx < 0 || xx >= cols || yy < 0 || yy >= rows {
+							continue
+						}
+						if dx == 0 && dy == 0 {
+							continue
+						}
+						k := layout.Tilemap[yy][xx]
+						if world.IsSolidTile(k) {
+							errs = append(errs, fmt.Sprintf("entity %s footprint at (%d,%d) covers solid tile %q at (%d,%d)", label, pos.X, pos.Y, k, xx, yy))
+						}
+					}
+				}
+			}
+			if len(layout.Plots) > 0 && !world.IsInPlot(pos.X, pos.Y, layout.Plots) {
+				if plotDesc != "" {
+					errs = append(errs, fmt.Sprintf("entity %s at (%d,%d) not inside any buildable plot/clearing — must be within one of: %s", label, pos.X, pos.Y, plotDesc))
+				} else {
+					errs = append(errs, fmt.Sprintf("entity %s at (%d,%d) not inside any buildable plot/clearing", label, pos.X, pos.Y))
+				}
+			}
+		}
+		for _, c := range sc.Characters {
+			checkLayoutEntity(fmt.Sprintf("character %q", c.ID), c.Position, 1, 1)
+			if c.Plot != nil {
+				found := false
+				inside := false
+				for _, p := range layout.Plots {
+					if p.ID == *c.Plot {
+						found = true
+						if c.Position.X >= p.X && c.Position.X < p.X+p.W && c.Position.Y >= p.Y && c.Position.Y < p.Y+p.H {
+							inside = true
+						}
+						break
+					}
+				}
+				if !found {
+					errs = append(errs, fmt.Sprintf("character %q: plot %q not found — valid plots: %s", c.ID, *c.Plot, plotDesc))
+				} else if !inside {
+					errs = append(errs, fmt.Sprintf("character %q: position (%d,%d) not inside claimed plot %q", c.ID, c.Position.X, c.Position.Y, *c.Plot))
+				}
+			}
+		}
+		for _, b := range sc.Buildings {
+			w, h := 1, 1
+			if b.Width != nil {
+				w = *b.Width
+			}
+			if b.Height != nil {
+				h = *b.Height
+			}
+			checkLayoutEntity(fmt.Sprintf("building %q", b.ID), b.Position, w, h)
+			if b.Plot != nil {
+				found := false
+				inside := false
+				for _, p := range layout.Plots {
+					if p.ID == *b.Plot {
+						found = true
+						if b.Position.X >= p.X && b.Position.X < p.X+p.W && b.Position.Y >= p.Y && b.Position.Y < p.Y+p.H {
+							inside = true
+						}
+						break
+					}
+				}
+				if !found {
+					errs = append(errs, fmt.Sprintf("building %q: plot %q not found — valid plots: %s", b.ID, *b.Plot, plotDesc))
+				} else if !inside {
+					errs = append(errs, fmt.Sprintf("building %q: position (%d,%d) not inside claimed plot %q", b.ID, b.Position.X, b.Position.Y, *b.Plot))
+				}
+			}
+		}
+		for _, o := range sc.Objects {
+			checkLayoutEntity(fmt.Sprintf("object %q", o.ID), o.Position, 1, 1)
+			if o.Plot != nil {
+				found := false
+				inside := false
+				for _, p := range layout.Plots {
+					if p.ID == *o.Plot {
+						found = true
+						if o.Position.X >= p.X && o.Position.X < p.X+p.W && o.Position.Y >= p.Y && o.Position.Y < p.Y+p.H {
+							inside = true
+						}
+						break
+					}
+				}
+				if !found {
+					errs = append(errs, fmt.Sprintf("object %q: plot %q not found — valid plots: %s", o.ID, *o.Plot, plotDesc))
+				} else if !inside {
+					errs = append(errs, fmt.Sprintf("object %q: position (%d,%d) not inside claimed plot %q", o.ID, o.Position.X, o.Position.Y, *o.Plot))
+				}
+			}
+		}
 	}
 
 	// Duplicate entity IDs check

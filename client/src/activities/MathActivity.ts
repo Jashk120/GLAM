@@ -39,8 +39,12 @@ export function showMath(
   submit.onclick = check;
   cancel.onclick = () => overlayEl.classList.remove("active");
   input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") check();
-    if (e.key === "Escape") overlayEl.classList.remove("active");
+    e.stopPropagation();
+    if (e.key === "Enter") { e.preventDefault(); check(); }
+    else if (e.key === "Escape") { e.preventDefault(); overlayEl.classList.remove("active"); }
+    else if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d","W","A","S","D","e","E"," "].includes(e.key)) {
+      e.stopImmediatePropagation?.();
+    }
   });
 }
 

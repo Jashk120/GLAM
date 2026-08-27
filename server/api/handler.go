@@ -106,21 +106,39 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validation pipeline
-	ok, details, err := scenario.ValidateScenario([]byte(rawJSON), h.SchemaPath, h.RegistryPath)
+	// Validation pipeline with auto-repair fallback for plot mismatches
+	rawBytes := []byte(rawJSON)
+	ok, details, err := scenario.ValidateScenario(rawBytes, h.SchemaPath, h.RegistryPath)
 	if err != nil {
 		log.Printf("validation internal error: %v", err)
 		writeError(w, http.StatusInternalServerError, "validation internal error", nil)
 		return
 	}
 	if !ok {
-		writeError(w, http.StatusBadRequest, "generated scenario failed validation", details)
-		return
+		// Best-effort auto-fix for template-locked plot IDs (e.g. clearing_2 in town)
+		if hasPlotError(details) {
+			if fixed, didFix, ferr := scenario.NormalizePlotRefs(rawBytes); ferr == nil && didFix {
+				if ok2, details2, err2 := scenario.ValidateScenario(fixed, h.SchemaPath, h.RegistryPath); err2 == nil && ok2 {
+					log.Printf("auto-fixed plot refs (was %v) — retry validation passed", details)
+					rawBytes = fixed
+					rawJSON = string(fixed)
+					ok = true
+					details = details2
+				} else if err2 == nil && !ok2 {
+					// Still failing but maybe fewer errors — log and keep original details for response
+					log.Printf("auto-fix attempted but still invalid: %v", details2)
+				}
+			}
+		}
+		if !ok {
+			writeError(w, http.StatusBadRequest, "generated scenario failed validation", details)
+			return
+		}
 	}
 
 	// Parse to ensure object, then return
 	var scenarioObj map[string]interface{}
-	if err := json.Unmarshal([]byte(rawJSON), &scenarioObj); err != nil {
+	if err := json.Unmarshal(rawBytes, &scenarioObj); err != nil {
 		writeError(w, http.StatusBadRequest, "generated scenario is not valid JSON", []string{err.Error()})
 		return
 	}
@@ -280,6 +298,18 @@ func sanitizeFilename(s string) string {
 		s = s[:64]
 	}
 	return s
+}
+
+func hasPlotError(details []string) bool {
+	for _, d := range details {
+		if strings.Contains(d, "plot") && (strings.Contains(d, "not found") || strings.Contains(d, "not inside")) {
+			return true
+		}
+		if strings.Contains(d, "clearing") && strings.Contains(d, "not found") {
+			return true
+		}
+	}
+	return false
 }
 
 func truncateErr(s string) string {

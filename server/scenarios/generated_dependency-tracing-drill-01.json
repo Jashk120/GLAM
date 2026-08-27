@@ -1,0 +1,129 @@
+{
+  "buildings": [
+    {
+      "id": "archive",
+      "position": {
+        "x": 2,
+        "y": 2
+      },
+      "typeAssetId": "house_small",
+      "width": 1
+    },
+    {
+      "id": "lab",
+      "position": {
+        "x": 7,
+        "y": 2
+      },
+      "typeAssetId": "shop_small",
+      "width": 1
+    },
+    {
+      "id": "vault",
+      "position": {
+        "x": 12,
+        "y": 2
+      },
+      "typeAssetId": "bank",
+      "width": 1
+    }
+  ],
+  "characters": [
+    {
+      "id": "tracer",
+      "name": "Tracer",
+      "position": {
+        "x": 2,
+        "y": 10
+      },
+      "profession": "Code Archaeologist"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_teacher"
+      },
+      "id": "auditor",
+      "name": "Auditor",
+      "position": {
+        "x": 7,
+        "y": 10
+      },
+      "profession": "Invariant Checker"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_ranger"
+      },
+      "id": "ranger",
+      "name": "Ranger",
+      "position": {
+        "x": 12,
+        "y": 10
+      },
+      "profession": "Failure Path Guide"
+    }
+  ],
+  "id": "dependency-tracing-drill-01",
+  "missions": [
+    {
+      "description": "Read the starting points and question from the NPCs, then trace the code yourself and return with a dependency graph in arrow notation.",
+      "id": "trace-invariant",
+      "title": "Trace The Invariant"
+    }
+  ],
+  "objects": [
+    {
+      "assetId": "sign_wood",
+      "id": "sign-start",
+      "position": {
+        "x": 3,
+        "y": 1
+      }
+    },
+    {
+      "assetId": "sign_wood",
+      "id": "sign-question",
+      "position": {
+        "x": 8,
+        "y": 1
+      }
+    },
+    {
+      "assetId": "object_chest",
+      "id": "chest-rules",
+      "position": {
+        "x": 13,
+        "y": 1
+      }
+    },
+    {
+      "assetId": "sign_wood",
+      "id": "sign-files",
+      "position": {
+        "x": 3,
+        "y": 9
+      }
+    },
+    {
+      "assetId": "object_coin",
+      "id": "coin-graph",
+      "position": {
+        "x": 8,
+        "y": 9
+      }
+    }
+  ],
+  "title": "Dependency Tracing - Invariant Drill",
+  "version": "1.0.0",
+  "world": {
+    "size": {
+      "cols": 15,
+      "rows": 12
+    },
+    "spawn": {
+      "x": 7,
+      "y": 6
+    },
+    "template": "town"
+  }
+}

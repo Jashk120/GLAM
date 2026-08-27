@@ -1,0 +1,130 @@
+{
+  "buildings": [
+    {
+      "id": "school-main",
+      "position": {
+        "x": 7,
+        "y": 5
+      },
+      "typeAssetId": "school_main"
+    }
+  ],
+  "characters": [
+    {
+      "appearance": {
+        "spriteId": "character_teacher"
+      },
+      "id": "guide-teacher",
+      "interaction": {
+        "speaker": "Ms. Rivera",
+        "text": "Welcome to Dependency Tracing Lab. Your goal: pick ONE invariant and trace it end-to-end. Check your journal for the starting point and question. Remember: failure paths are where invariants break — focus there.",
+        "type": "dialogue"
+      },
+      "name": "Ms. Rivera",
+      "position": {
+        "x": 6,
+        "y": 6
+      },
+      "profession": "Instructor"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_student"
+      },
+      "id": "peer-student",
+      "interaction": {
+        "content": "How to submit: 1) Draw dependency graph in arrow notation: A::field -\u003e B::fn uses it -\u003e C::struct stores result 2) Cite file + line/function for EACH arrow 3) Return and I will verify against exact lines, not summaries.",
+        "title": "Submission Format",
+        "type": "information"
+      },
+      "name": "Alex",
+      "position": {
+        "x": 8,
+        "y": 6
+      },
+      "profession": "Peer Reviewer"
+    }
+  ],
+  "id": "trace-dependencies-lab",
+  "missions": [
+    {
+      "description": "Read the invariant prompt at the Security Desk, then examine the starting file hint. Do not ask for summaries — read raw code.",
+      "id": "m1-start",
+      "title": "Start: Find Your Invariant",
+      "trigger": {
+        "entityId": "sign-start"
+      }
+    },
+    {
+      "description": "Trace the specific question through the codebase. Map every read/write and upstream value. Use arrow notation and cite lines/functions for each edge.",
+      "id": "m2-trace",
+      "title": "Build the Dependency Graph",
+      "trigger": {
+        "entityId": "object-chest-a"
+      }
+    },
+    {
+      "description": "Return to Ms. Rivera with your graph and line citations. You will be judged on exact file+line accuracy. If wrong, you will be pointed to the disproving line to re-read.",
+      "id": "m3-submit",
+      "title": "Submit for Verification",
+      "trigger": {
+        "entityId": "guide-teacher"
+      }
+    }
+  ],
+  "objects": [
+    {
+      "assetId": "sign_wood",
+      "id": "sign-start",
+      "interaction": {
+        "content": "ROUND 1 — INVARIANT: Security Check / Auth Token Flow (Failure-Path Biased)\n\nStarting Point: The auth token / session field that gates access to protected routes — look for struct field named token, session, auth, or credentials in the main server/app entry point.\n\nSpecific Question to Answer: Trace BACKWARD: What upstream values determine whether this security check PASSES or FAILS? Include: where the value is created, every function that transforms/validates it, every place that reads it to allow/deny, and critically — all error-path and edge-case branches (malformed input, expiry, concurrent refresh, crash recovery).\n\nFiles to Start Reading: Start with the route handler / middleware that enforces the check (search for middleware, guard, authorize, verifyToken). Then follow imports backward to the token creation/validation module. Do NOT read agent summaries.\n\nNext time you answer, include arrow graph + line citations. After verification, your errors will be logged as running notes (e.g., misses async ordering).",
+        "title": "Task: Trace This Dependency",
+        "type": "information"
+      },
+      "position": {
+        "x": 5,
+        "y": 5
+      }
+    },
+    {
+      "assetId": "object_chest",
+      "id": "object-chest-a",
+      "interaction": {
+        "content": "Reminder: Cap at ONE dependency graph per round. Bias toward failure paths: malformed tokens, expired sessions, race on refresh, missing header. Happy-path is not enough.",
+        "title": "Constraints",
+        "type": "information"
+      },
+      "position": {
+        "x": 9,
+        "y": 5
+      }
+    },
+    {
+      "assetId": "object_coin",
+      "id": "object-coin-hint",
+      "interaction": {
+        "content": "Running Notes Log (across sessions) will be kept here. Current: [Session 1 — pending]. Future picks will deliberately target your weak spots: async ordering, error-path branches, concurrent access.",
+        "title": "Running Notes",
+        "type": "information"
+      },
+      "position": {
+        "x": 7,
+        "y": 7
+      }
+    }
+  ],
+  "title": "Dependency Tracing Lab — Trace the Invariant",
+  "version": "1.0.0",
+  "world": {
+    "size": {
+      "cols": 15,
+      "rows": 12
+    },
+    "spawn": {
+      "x": 7,
+      "y": 9
+    },
+    "template": "school",
+    "theme": "school"
+  }
+}

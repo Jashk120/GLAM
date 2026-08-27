@@ -1,0 +1,279 @@
+{
+  "buildings": [
+    {
+      "id": "zoo-entrance",
+      "position": {
+        "x": 1,
+        "y": 1
+      },
+      "typeAssetId": "shop_small"
+    },
+    {
+      "id": "zoo-barn",
+      "position": {
+        "x": 10,
+        "y": 1
+      },
+      "typeAssetId": "house_large"
+    },
+    {
+      "id": "zoo-vet",
+      "position": {
+        "x": 5,
+        "y": 8
+      },
+      "typeAssetId": "hospital"
+    }
+  ],
+  "characters": [
+    {
+      "appearance": {
+        "spriteId": "character_ranger"
+      },
+      "id": "ranger-maya",
+      "interaction": {
+        "speaker": "Ranger Maya",
+        "text": "Welcome to the Friendly Zoo! Some animals are domestic - they live with people and are safe to pet gently. Wild animals live in nature and we must observe them from a distance. Let's learn the difference!",
+        "type": "dialogue"
+      },
+      "name": "Ranger Maya",
+      "position": {
+        "x": 6,
+        "y": 5
+      },
+      "profession": "Park Ranger"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_teacher"
+      },
+      "id": "teacher-leo",
+      "interaction": {
+        "speaker": "Teacher Leo",
+        "text": "Remember: Domestic animals like dogs, cats, chickens, and goats are used to humans. Wild animals like bears, foxes, and wolves protect themselves. Never approach wild animals!",
+        "type": "dialogue"
+      },
+      "name": "Teacher Leo",
+      "position": {
+        "x": 3,
+        "y": 6
+      },
+      "profession": "Teacher"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_student"
+      },
+      "id": "student-sam",
+      "interaction": {
+        "text": "I thought all animals could be petted! Can you help me sort which ones are domestic and which are wild?",
+        "type": "dialogue"
+      },
+      "name": "Student Sam",
+      "position": {
+        "x": 8,
+        "y": 6
+      },
+      "profession": "Student"
+    },
+    {
+      "appearance": {
+        "spriteId": "wild_animal_bear"
+      },
+      "id": "bear-bruno",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": false,
+            "explanation": "Bears are wild animals! They may look cuddly but they are dangerous and must be observed from far away.",
+            "text": "Try to pet it"
+          },
+          {
+            "correct": true,
+            "explanation": "Correct! Bears are wild animals. We stay quiet, keep distance, and observe with our eyes only.",
+            "text": "Stay back and observe quietly"
+          },
+          {
+            "correct": false,
+            "explanation": "Feeding wild animals is dangerous for you and for them. Never feed them.",
+            "text": "Offer food"
+          }
+        ],
+        "question": "You see a big bear behind the fence. What should you do?",
+        "type": "mcq"
+      },
+      "name": "Bruno the Bear",
+      "position": {
+        "x": 2,
+        "y": 8
+      }
+    },
+    {
+      "appearance": {
+        "spriteId": "wild_animal_fox"
+      },
+      "id": "fox-fiona",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": false,
+            "explanation": "Foxes are wild - they are not pets and can bite if scared.",
+            "text": "Pick it up like a pet cat"
+          },
+          {
+            "correct": true,
+            "explanation": "Exactly! Foxes are wild animals. Watch silently from a distance and let a ranger care for them.",
+            "text": "Watch from a distance and tell a ranger"
+          },
+          {
+            "correct": false,
+            "explanation": "Chasing scares wild animals and can be dangerous.",
+            "text": "Chase it for fun"
+          }
+        ],
+        "question": "A fox darts near the forest edge in the zoo. Is it domestic or wild, and how do you act?",
+        "type": "mcq"
+      },
+      "name": "Fiona the Fox",
+      "position": {
+        "x": 10,
+        "y": 8
+      }
+    }
+  ],
+  "id": "zoo-domestic-wild-learn",
+  "missions": [
+    {
+      "description": "Talk to Ranger Maya at the entrance to learn the rules of the zoo.",
+      "id": "meet-ranger",
+      "title": "Welcome to the Zoo",
+      "trigger": {
+        "entityId": "ranger-maya"
+      }
+    },
+    {
+      "description": "Test your knowledge about the bear - do you know how to act around wild animals?",
+      "id": "learn-bear",
+      "title": "Wild Encounter: Bruno the Bear",
+      "trigger": {
+        "entityId": "bear-bruno"
+      }
+    },
+    {
+      "description": "Visit Fiona the Fox and show you know how to respect wild animals.",
+      "id": "learn-fox",
+      "title": "Wild Encounter: Fiona the Fox",
+      "trigger": {
+        "entityId": "fox-fiona"
+      }
+    },
+    {
+      "description": "Ask Teacher Leo about domestic animals and how to interact safely with them.",
+      "id": "learn-domestic",
+      "title": "Domestic Friends",
+      "trigger": {
+        "entityId": "teacher-leo"
+      }
+    }
+  ],
+  "objects": [
+    {
+      "assetId": "sign_wood",
+      "id": "sign-welcome",
+      "interaction": {
+        "content": "ZOO RULES:\n1. DOMESTIC animals (goat, sheep, rabbit, chicken) - You may pet gently with an adult nearby, wash hands after.\n2. WILD animals (bear, fox, wolf, lion) - Look with eyes only, stay behind barriers, never feed or touch, tell a ranger if animal seems sick.",
+        "title": "Zoo Safety Guide",
+        "type": "information"
+      },
+      "position": {
+        "x": 6,
+        "y": 3
+      }
+    },
+    {
+      "assetId": "sign_wood",
+      "id": "sign-domestic",
+      "interaction": {
+        "content": "DOMESTIC ANIMALS live with humans. They are used to gentle touch, need food, water and shelter from people. Examples: dogs, cats, goats, rabbits, horses, chickens. How to interact: Move slowly, let them sniff your hand, pet gently on the side, be calm and quiet.",
+        "title": "Domestic Animals",
+        "type": "information"
+      },
+      "position": {
+        "x": 11,
+        "y": 3
+      }
+    },
+    {
+      "assetId": "sign_wood",
+      "id": "sign-wild",
+      "interaction": {
+        "content": "WILD ANIMALS live in nature on their own. They are NOT pets! Examples: bears, foxes, wolves, deer, tigers. How to interact: Keep distance, stay behind fences, never try to touch or feed, observe quietly, always ask a ranger.",
+        "title": "Wild Animals",
+        "type": "information"
+      },
+      "position": {
+        "x": 2,
+        "y": 3
+      }
+    },
+    {
+      "assetId": "object_chest",
+      "id": "chest-quiz",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": true,
+            "explanation": "Correct! Goats, rabbits and chickens are domestic and used to people.",
+            "text": "Goat, Rabbit, Chicken"
+          },
+          {
+            "correct": false,
+            "explanation": "Bear and fox are wild animals, not domestic.",
+            "text": "Bear, Fox, Wolf"
+          },
+          {
+            "correct": false,
+            "explanation": "Fox is wild and should not be in the domestic group.",
+            "text": "Goat, Fox, Chicken"
+          }
+        ],
+        "question": "Which group contains ONLY domestic animals that you can gently interact with at the petting farm?",
+        "type": "mcq"
+      },
+      "position": {
+        "x": 6,
+        "y": 7
+      }
+    },
+    {
+      "assetId": "object_coin",
+      "id": "coin-reward",
+      "interaction": {
+        "content": "Great job! You learned: Domestic = lives with people, gentle interaction OK with care. Wild = lives in nature, observe from distance only. You are now a Zoo Helper!",
+        "title": "You are a Zoo Expert!",
+        "type": "information"
+      },
+      "position": {
+        "x": 7,
+        "y": 2
+      }
+    }
+  ],
+  "title": "Friendly Zoo: Domestic and Wild Animals",
+  "version": "1.0.0",
+  "world": {
+    "size": {
+      "cols": 14,
+      "rows": 10
+    },
+    "spawn": {
+      "x": 6,
+      "y": 2
+    },
+    "template": "town",
+    "theme": "town"
+  }
+}

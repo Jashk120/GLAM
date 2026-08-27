@@ -1,0 +1,351 @@
+{
+  "buildings": [
+    {
+      "id": "zoo-entrance",
+      "position": {
+        "x": 2,
+        "y": 2
+      },
+      "typeAssetId": "shop_small",
+      "width": 1
+    },
+    {
+      "id": "enclosure-bear",
+      "position": {
+        "x": 7,
+        "y": 1
+      },
+      "typeAssetId": "house_large",
+      "width": 2
+    },
+    {
+      "id": "enclosure-fox",
+      "position": {
+        "x": 12,
+        "y": 2
+      },
+      "typeAssetId": "house_small"
+    },
+    {
+      "id": "petting-barn",
+      "position": {
+        "x": 2,
+        "y": 10
+      },
+      "typeAssetId": "house_large",
+      "width": 2
+    },
+    {
+      "id": "zoo-school",
+      "position": {
+        "x": 7,
+        "y": 10
+      },
+      "typeAssetId": "school_main",
+      "width": 2
+    },
+    {
+      "id": "zoo-shop",
+      "position": {
+        "x": 12,
+        "y": 10
+      },
+      "typeAssetId": "shop_large",
+      "width": 2
+    }
+  ],
+  "characters": [
+    {
+      "appearance": {
+        "spriteId": "character_teacher"
+      },
+      "id": "teacher-zoo",
+      "interaction": {
+        "speaker": "Ms. Mara - Zoo Educator",
+        "text": "Welcome to the Friendly Zoo! Here you will learn which animals are domestic and can live with us, and which are wild and must stay in nature. Domestic animals are gentle and used to people. Wild animals need space and are dangerous to touch!",
+        "type": "dialogue"
+      },
+      "name": "Ms. Mara",
+      "position": {
+        "x": 3,
+        "y": 1
+      },
+      "profession": "Zoo Educator"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_ranger"
+      },
+      "id": "ranger-zoo",
+      "interaction": {
+        "content": "WILD vs DOMESTIC:\n\nWILD (do NOT touch, observe from far): Bear, Fox, Wolf, Lion - they live in forests and need freedom.\n\nDOMESTIC (gentle, live with humans): Dog, Cat, Chicken, Sheep, Rabbit, Horse - they need our care.\n\nRule: Never approach, feed or pet a wild animal! Always ask an adult before petting a domestic animal.",
+        "title": "Zoo Safety Rules",
+        "type": "information"
+      },
+      "name": "Ranger Jon",
+      "position": {
+        "x": 8,
+        "y": 2
+      },
+      "profession": "Zoo Keeper"
+    },
+    {
+      "appearance": {
+        "spriteId": "wild_animal_bear"
+      },
+      "id": "bear-bruno",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": false,
+            "explanation": "No! Bears are wild and dangerous, even if they look cute. Never approach or touch.",
+            "text": "Try to pet it and give food"
+          },
+          {
+            "correct": true,
+            "explanation": "Correct! Bears are wild animals. We observe from a safe distance behind the barrier.",
+            "text": "Stay behind the barrier and observe quietly"
+          },
+          {
+            "correct": false,
+            "explanation": "Running can trigger chase. Stay calm and keep distance.",
+            "text": "Run and shout next to it"
+          }
+        ],
+        "question": "Bruno the Bear is a wild animal. How should you interact with him?",
+        "type": "mcq"
+      },
+      "name": "Bruno the Bear",
+      "position": {
+        "x": 7,
+        "y": 2
+      },
+      "profession": "Wild Animal"
+    },
+    {
+      "appearance": {
+        "spriteId": "wild_animal_fox"
+      },
+      "id": "fox-fiona",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": false,
+            "explanation": "Foxes are wild - they may bite and carry diseases. Not pets!",
+            "text": "Take it home as a pet"
+          },
+          {
+            "correct": false,
+            "explanation": "Wild animals should not be fed by kids - it makes them sick and dependent.",
+            "text": "Feed it your sandwich through the fence"
+          },
+          {
+            "correct": true,
+            "explanation": "Perfect! Foxes are wild animals. We watch and do not touch.",
+            "text": "Look from a distance and do not touch"
+          }
+        ],
+        "question": "Fiona the Fox is small and pretty. Is she domestic? How do you interact?",
+        "type": "mcq"
+      },
+      "name": "Fiona the Fox",
+      "position": {
+        "x": 13,
+        "y": 1
+      },
+      "profession": "Wild Animal"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_student"
+      },
+      "id": "student-leo",
+      "interaction": {
+        "answer": 4,
+        "hint": "Count: 2 cats + 2 rabbits = ?",
+        "question": "At the petting barn there are 2 cats and 2 rabbits. All are domestic animals. How many domestic animals can you gently pet there?",
+        "tolerance": 0,
+        "type": "math"
+      },
+      "name": "Leo",
+      "position": {
+        "x": 3,
+        "y": 10
+      },
+      "profession": "Junior Keeper"
+    },
+    {
+      "appearance": {
+        "spriteId": "character_shopkeeper"
+      },
+      "id": "shopkeeper-zoe",
+      "interaction": {
+        "currency": "coins",
+        "items": [
+          {
+            "name": "Plush Cat (Domestic)",
+            "price": 5
+          },
+          {
+            "name": "Plush Dog (Domestic)",
+            "price": 5
+          },
+          {
+            "name": "Info Card Bear (Wild)",
+            "price": 2
+          }
+        ],
+        "type": "shop"
+      },
+      "name": "Zoe",
+      "position": {
+        "x": 12,
+        "y": 9
+      },
+      "profession": "Gift Shop Keeper"
+    }
+  ],
+  "id": "zoo-domestic-wild",
+  "missions": [
+    {
+      "description": "Talk to Ms. Mara at the entrance to understand domestic vs wild.",
+      "id": "mission-welcome",
+      "title": "Welcome to the Zoo",
+      "trigger": {
+        "entityId": "teacher-zoo"
+      }
+    },
+    {
+      "description": "Read the safety rules from Ranger Jon and learn how to behave around animals.",
+      "id": "mission-safety",
+      "title": "Learn Zoo Safety Rules",
+      "trigger": {
+        "entityId": "ranger-zoo"
+      }
+    },
+    {
+      "description": "Answer correctly how to behave with Bruno the Bear (wild - observe only).",
+      "id": "mission-bear",
+      "title": "Respect the Wild Bear",
+      "trigger": {
+        "entityId": "bear-bruno"
+      }
+    },
+    {
+      "description": "Answer correctly about Fiona the Fox - she is wild and must not be touched.",
+      "id": "mission-fox",
+      "title": "Observe the Fox Safely",
+      "trigger": {
+        "entityId": "fox-fiona"
+      }
+    },
+    {
+      "description": "Solve Leo's counting quiz at the petting barn about domestic animals.",
+      "id": "mission-petting",
+      "title": "Count Domestic Friends",
+      "trigger": {
+        "entityId": "student-leo"
+      }
+    }
+  ],
+  "objects": [
+    {
+      "assetId": "sign_wood",
+      "id": "sign-welcome",
+      "interaction": {
+        "content": "Welcome! DOMESTIC = lives with humans (cat, dog, sheep, rabbit). WILD = lives in nature (bear, fox). Pet gently = domestic only!",
+        "title": "Zoo Map",
+        "type": "information"
+      },
+      "position": {
+        "x": 1,
+        "y": 2
+      }
+    },
+    {
+      "assetId": "object_chest",
+      "id": "chest-domestic",
+      "interaction": {
+        "content": "DOMESTIC ANIMALS: Cat meows, Dog barks - they love people, need food/water/shelter from us. You can pet them gently when adult says ok, wash hands after!",
+        "title": "Domestic Animals - Our Friends",
+        "type": "information"
+      },
+      "position": {
+        "x": 1,
+        "y": 10
+      }
+    },
+    {
+      "assetId": "object_chest",
+      "id": "chest-wild",
+      "interaction": {
+        "content": "WILD ANIMALS: Bear and Fox live in forests. They hunt and are afraid of people. Never touch, never feed, stay behind fences and stay quiet. If you see one in nature, tell an adult and walk away slowly.",
+        "title": "Wild Animals - Observe Only",
+        "type": "information"
+      },
+      "position": {
+        "x": 12,
+        "y": 1
+      }
+    },
+    {
+      "assetId": "object_coin",
+      "id": "coin-quiz",
+      "interaction": {
+        "allowRetry": true,
+        "options": [
+          {
+            "correct": true,
+            "explanation": "Yes! Sheep, chickens and rabbits are domestic farm animals.",
+            "text": "Sheep, Chicken, Rabbit"
+          },
+          {
+            "correct": false,
+            "explanation": "Bear and fox are wild animals, not domestic.",
+            "text": "Bear, Fox, Wolf"
+          },
+          {
+            "correct": false,
+            "explanation": "Mixed! Bear is wild, only cat is domestic here.",
+            "text": "Bear, Cat, Fox"
+          }
+        ],
+        "question": "Which group contains ONLY domestic animals?",
+        "type": "mcq"
+      },
+      "position": {
+        "x": 8,
+        "y": 10
+      }
+    },
+    {
+      "assetId": "sign_wood",
+      "id": "sign-petting-rules",
+      "interaction": {
+        "content": "Petting Barn Rules: 1. Ask keeper first 2. Pet gently with open hand 3. No chasing 4. Wash hands after. Only domestic animals are here!",
+        "title": "How to Pet Safely",
+        "type": "information"
+      },
+      "position": {
+        "x": 3,
+        "y": 9
+      }
+    }
+  ],
+  "title": "The Friendly Zoo - Domestic vs Wild",
+  "version": "1.0",
+  "world": {
+    "size": {
+      "cols": 15,
+      "rows": 12
+    },
+    "spawn": {
+      "x": 7,
+      "y": 5
+    },
+    "template": "town",
+    "theme": "town"
+  }
+}

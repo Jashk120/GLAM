@@ -166,6 +166,21 @@ const teacherUI = new TeacherUI({
   },
 });
 
+promptInput.addEventListener("focus", () => {
+  document.body.classList.add("teacher-typing");
+  try {
+    const kb = (gameScene as unknown as { input?: { keyboard?: { enabled: boolean } } })?.input?.keyboard;
+    if (kb) kb.enabled = false;
+  } catch {}
+});
+promptInput.addEventListener("blur", () => {
+  document.body.classList.remove("teacher-typing");
+  try {
+    const kb = (gameScene as unknown as { input?: { keyboard?: { enabled: boolean } } })?.input?.keyboard;
+    if (kb) kb.enabled = true;
+  } catch {}
+});
+
 // Initial asset status before scenario loads
 assetStatus.textContent = `Assets cached: ${assetStreamer.cachedCount()}/${assetStreamer.totalCount()}`;
 

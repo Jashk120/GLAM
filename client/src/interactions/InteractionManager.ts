@@ -29,7 +29,9 @@ export class InteractionManager {
     this.deps = deps;
     // close modal on overlay click? keep only via buttons/ESC; allow Esc
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && this.modalOpen) {
+      const active = document.activeElement as HTMLElement | null;
+      const typing = !!active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.tagName === "SELECT" || active.isContentEditable);
+      if (e.key === "Escape" && this.modalOpen && !typing) {
         this.deps.overlayEl.classList.remove("active");
         this.modalOpen = false;
       }

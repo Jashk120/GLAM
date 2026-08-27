@@ -122,6 +122,7 @@ export interface Character {
   profession?: string;
   appearance?: Appearance;
   position: Position;
+  plot?: string;
   interaction?: Interaction;
 }
 
@@ -131,6 +132,7 @@ export interface Building {
   position: Position;
   width?: number;
   height?: number;
+  plot?: string;
   interaction?: Interaction;
 }
 
@@ -138,6 +140,7 @@ export interface ObjectEntity {
   id: string;
   assetId: string;
   position: Position;
+  plot?: string;
   interaction?: Interaction;
 }
 

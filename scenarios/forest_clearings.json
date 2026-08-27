@@ -1,0 +1,119 @@
+{
+  "id": "forest-clearings",
+  "title": "Forest — Clearings & Fixed Trees Demo",
+  "version": "1.0",
+  "world": {
+    "template": "forest",
+    "spawn": { "x": 4, "y": 8 },
+    "size": { "cols": 15, "rows": 12 },
+    "theme": "forest"
+  },
+  "characters": [
+    {
+      "id": "ranger_sam",
+      "name": "Ranger Sam",
+      "profession": "Ranger",
+      "appearance": { "spriteId": "character_ranger", "color": "#4a7a2e" },
+      "position": { "x": 3, "y": 3 },
+      "plot": "clearing_1",
+      "interaction": {
+        "type": "dialogue",
+        "text": "Forest is fixed: grass everywhere, trees block borders and scattered interior. Only clearings are open — you can put anything there, like me in clearing_1.",
+        "speaker": "Ranger Sam"
+      }
+    },
+    {
+      "id": "wild_bear",
+      "name": "Wild Bear",
+      "profession": "Wildlife",
+      "appearance": { "spriteId": "wild_animal_bear", "color": "#8b4513" },
+      "position": { "x": 11, "y": 3 },
+      "plot": "clearing_2",
+      "interaction": {
+        "type": "mcq",
+        "question": "Bear appears in clearing_2. What do you do?",
+        "options": [
+          { "text": "Stay calm, back away slowly", "correct": true, "explanation": "Give space." },
+          { "text": "Run screaming", "correct": false },
+          { "text": "Feed the bear", "correct": false }
+        ],
+        "allowRetry": true,
+        "cooldown": 3000,
+        "auto": true,
+        "onCorrect": { "toast": "✅ Safe!" },
+        "onWrong": { "stat": "lives", "delta": -1, "toast": "❌ Startled!" }
+      }
+    },
+    {
+      "id": "student_ava",
+      "name": "Ava",
+      "profession": "Student",
+      "appearance": { "spriteId": "character_student", "color": "#7bc67e" },
+      "position": { "x": 3, "y": 8 },
+      "plot": "clearing_3",
+      "interaction": {
+        "type": "math",
+        "question": "Ranger counted 8 trees around clearing_1 and 6 around clearing_2. How many total?",
+        "answer": 14,
+        "hint": "8+6",
+        "onCorrect": { "toast": "✅ 14 trees!" }
+      }
+    }
+  ],
+  "buildings": [
+    {
+      "id": "ranger_cabin",
+      "typeAssetId": "house_small",
+      "position": { "x": 11, "y": 9 },
+      "plot": "clearing_4",
+      "interaction": {
+        "type": "information",
+        "title": "Ranger Cabin",
+        "content": "Cabin sits in clearing_4 (Southeast, 9,8,4,3) — open grass surrounded by fixed trees. Only clearings allow building."
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "sign_clearing",
+      "assetId": "sign_wood",
+      "position": { "x": 5, "y": 4 },
+      "plot": "clearing_1",
+      "interaction": {
+        "type": "information",
+        "title": "Forest Guide",
+        "content": "Forest has 4 clearings: clearing_1(2,2,4,3) NW, clearing_2(10,2,4,3) NE, clearing_3(2,7,5,3) SW, clearing_4(9,8,4,3) SE. Trees are fixed solid — cannot place anything on them."
+      }
+    },
+    {
+      "id": "fox1",
+      "assetId": "wild_animal_fox",
+      "position": { "x": 10, "y": 9 },
+      "plot": "clearing_4",
+      "interaction": {
+        "type": "dialogue",
+        "text": "🦊 Fox watches from clearing_4!",
+        "speaker": "Fox"
+      }
+    },
+    {
+      "id": "chest_forest",
+      "assetId": "object_chest",
+      "position": { "x": 4, "y": 4 },
+      "plot": "clearing_1",
+      "interaction": {
+        "type": "shop",
+        "currency": "coins",
+        "items": [
+          { "id": "berries", "name": "Berries", "price": 2, "icon": "🫐" },
+          { "id": "stick", "name": "Walking Stick", "price": 5, "icon": "🦯" }
+        ]
+      }
+    }
+  ],
+  "missions": [
+    { "id": "meet_ranger", "title": "Meet Ranger", "description": "Talk to Ranger in clearing_1.", "trigger": { "entityId": "ranger_sam" } },
+    { "id": "bear_quiz", "title": "Bear Safety", "description": "Answer bear quiz in clearing_2.", "trigger": { "entityId": "wild_bear" } },
+    { "id": "find_cabin", "title": "Find Cabin", "description": "Visit cabin in clearing_4.", "trigger": { "entityId": "ranger_cabin" } }
+  ]
+}

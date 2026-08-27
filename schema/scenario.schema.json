@@ -174,6 +174,12 @@
         "profession": { "type": "string", "minLength": 1, "maxLength": 64 },
         "appearance": { "$ref": "#/$defs/appearance" },
         "position": { "$ref": "#/$defs/position" },
+        "plot": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 64,
+          "description": "Optional plot/clearing id hint — must match a world layout plot (e.g. plot_1, clearing_2). Validator ensures position lies inside it."
+        },
         "interaction": { "$ref": "#/$defs/interaction" }
       }
     },
@@ -222,6 +228,12 @@
         "position": { "$ref": "#/$defs/position" },
         "width": { "type": "integer", "minimum": 1, "maximum": 30 },
         "height": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "plot": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 64,
+          "description": "Optional plot id — e.g. plot_1..plot_6 for town, clearing_1..clearing_4 for forest. If given, position must lie inside that plot."
+        },
         "interaction": { "$ref": "#/$defs/interaction" }
       }
     },
@@ -246,6 +258,12 @@
           "description": "Reference to registry object/prop/tile asset id."
         },
         "position": { "$ref": "#/$defs/position" },
+        "plot": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 64,
+          "description": "Optional plot/clearing id hint."
+        },
         "interaction": { "$ref": "#/$defs/interaction" }
       }
     },
