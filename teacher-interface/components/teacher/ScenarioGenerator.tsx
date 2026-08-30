@@ -3,25 +3,21 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FaWandMagicSparkles, FaSpinner, FaCircleCheck, FaTriangleExclamation } from "react-icons/fa6";
-
-// Formatting helper exactly as it was in your TS file
-function formatDetails(details: unknown): string {
-  if (Array.isArray(details)) return details.map((d) => `• ${String(d)}`).join("\n");
-  if (typeof details === "string") return details;
-  if (details) return String(details);
-  return "";
-}
+import { 
+  FiLoader, 
+  FiCheckCircle, 
+  FiAlertCircle, 
+  FiCornerDownLeft 
+} from "react-icons/fi";
+import {   HiSparkles  } from "react-icons/hi2"
 
 const STORAGE_KEY = "glam_lastGenerated";
-const GENERATE_URL = "http://localhost:8080/api/scenario/generate"; // Make sure to use the absolute URL for your Go server
+const GENERATE_URL = "http://localhost:8080/api/scenario/generate";
 
 export default function ScenarioGenerator() {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [generatedTitle, setGeneratedTitle] = useState("");
 
   const handleGenerate = async () => {
     if (!prompt.trim() || status === "loading") return;
@@ -39,45 +35,23 @@ export default function ScenarioGenerator() {
       const body = await res.json();
 
       if (!res.ok) {
-        const msg = body.error ?? `Request failed (${res.status})`;
-        const details = body.details;
-        throw new Error(details ? `${msg}\n${formatDetails(details)}` : msg);
+        throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-
       if (!body.scenario) {
         throw new Error("Server returned no scenario.");
       }
 
-      const scenario = body.scenario;
-
-      // Note: In Next.js, we assume the Go backend JSON schema validation is sufficient.
-      // The Phaser client will run its own `validateScenarioSync` when it boots it.
-      
-      // Save to localStorage (The Bridge to your Phaser game)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(scenario));
-      
-      setGeneratedTitle(scenario.title || "New Scenario");
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(body.scenario));
       setStatus("success");
 
-      // Reset success message after 3 seconds (replicating window.setTimeout from your TS)
-      setTimeout(() => {
-        setStatus("idle");
-      }, 3000);
-
+      setTimeout(() => setStatus("idle"), 4000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      
-      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
-        setErrorMsg("Network error — is the Go server running on :8080?");
-      } else {
-        setErrorMsg(`Error: ${msg}`);
-      }
-      
+      setErrorMsg(msg.includes("Failed to fetch") ? "Network error: Is the server running?" : msg);
       setStatus("error");
     }
   };
 
-  // Replicating the Ctrl+Enter / Cmd+Enter shortcut
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
@@ -86,56 +60,64 @@ export default function ScenarioGenerator() {
   };
 
   return (
-    <Card className="w-full max-w-2xl border-slate-200 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl flex items-center gap-2">
-          Generate Lesson
-        </CardTitle>
-        <CardDescription>
-          Describe your pedagogical goal. AI will generate a playable world.
-        </CardDescription>
-      </CardHeader>
+    <div className="group relative bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-zinc-200 transition-all duration-300 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-400 overflow-hidden">
       
-      <CardContent className="space-y-4">
+      <div className="p-2">
         <Textarea
-          placeholder="e.g., Create a small town where students learn basic money management..."
-          className="min-h-[120px] resize-none focus-visible:ring-blue-500"
+          placeholder="Design a small town where students must calculate change at a bakery..."
+          className="min-h-[140px] w-full resize-none border-0 shadow-none focus-visible:ring-0 text-lg leading-relaxed text-zinc-800 placeholder:text-zinc-400 bg-transparent p-4"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={status === "loading"}
+          spellCheck={false}
         />
-        
-        <div className="flex items-center justify-between min-h-[40px]">
-          <Button 
-            onClick={handleGenerate} 
-            disabled={status === "loading" || !prompt.trim()}
-            className="w-48 transition-all bg-blue-600 hover:bg-blue-700"
-          >
-            {status === "loading" ? (
-              <><FaSpinner className="mr-2 animate-spin" /> Generating...</>
-            ) : (
-              <><FaWandMagicSparkles className="mr-2" /> Generate Scenario</>
-            )}
-          </Button>
-
-          {/* Status Indicators replacing genStatus & genError logic */}
-          <div className="text-sm font-medium flex-1 text-right ml-4">
-            {status === "success" && (
-              <span className="flex items-center justify-end text-green-600 gap-2 animate-in fade-in">
-                <FaCircleCheck /> Generated! Loaded "{generatedTitle}" into game.
-              </span>
-            )}
-            
-            {status === "error" && (
-              <span className="flex items-center justify-end text-red-600 gap-2 whitespace-pre-line text-left">
-                <FaTriangleExclamation className="shrink-0" /> 
-                <span>{errorMsg}</span>
-              </span>
-            )}
-          </div>
+      </div>
+      <div className="flex items-center justify-between bg-zinc-50/80 px-4 py-3 border-t border-zinc-100 backdrop-blur-sm">
+        <div className="flex-1 flex items-center gap-2 text-sm font-medium">
+          {status === "idle" && (
+            <span className="text-zinc-400 flex items-center gap-2">
+              <FiCornerDownLeft className="hidden sm:block" />
+              <span className="hidden sm:inline">Press Cmd/Ctrl + Enter to generate</span>
+            </span>
+          )}
+          {status === "loading" && (
+            <span className="text-indigo-600 flex items-center gap-2 animate-pulse">
+              <FiLoader className="animate-spin" size={16} /> Synthesizing world data...
+            </span>
+          )}
+          {status === "success" && (
+            <span className="text-emerald-600 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+              <FiCheckCircle size={16} /> Scenario beamed to game client
+            </span>
+          )}
+          {status === "error" && (
+            <span className="text-rose-500 flex items-center gap-2 animate-in fade-in">
+              <FiAlertCircle size={16} className="shrink-0" />
+              <span className="truncate max-w-[300px]" title={errorMsg}>{errorMsg}</span>
+            </span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        <Button 
+          onClick={handleGenerate} 
+          disabled={status === "loading" || !prompt.trim()}
+          className={`rounded-xl px-6 py-5 shadow-md transition-all duration-300 ${
+            prompt.trim() 
+              ? "bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg hover:-translate-y-0.5" 
+              : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+          }`}
+        >
+          {status === "loading" ? (
+            <FiLoader className="animate-spin" size={20} />
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold">Generate</span>
+              <HiSparkles size={18} />
+            </div>
+          )}
+        </Button>
+      </div>
+    </div>
   );
 }

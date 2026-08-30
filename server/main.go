@@ -147,5 +147,6 @@ func isLocalhost(origin string) bool {
 	return origin == "http://localhost:5173" ||
 		origin == "http://127.0.0.1:5173" ||
 		origin == "http://localhost:3000" ||
+		origin == "http://127.0.0.1:3000" ||
 		origin == "http://127.0.0.1:8080"
 }

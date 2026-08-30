@@ -1,22 +1,11 @@
 import ScenarioGenerator from "@/components/teacher/ScenarioGenerator";
-
 export default function TeacherDashboard() {
   return (
-    <main className="min-h-screen bg-slate-50 p-8 md:p-16">
-      <div className="max-w-5xl mx-auto space-y-8">
-        
-        <header>
-          <h1 className="text-4xl font-bold tracking-tight text-slate-900">
-            GLAM Teacher Interface
-          </h1>
-          <p className="text-slate-500 mt-2 text-lg">
-            Design scenarios, validate layouts, and stream assets to your students.
-          </p>
-        </header>
-
-        <section>
+    <main className="min-h-screen relative flex flex-col items-center justify-center bg-zinc-50 overflow-hidden px-4 md:px-8">
+      <div className="relative z-10 w-full max-w-3xl flex flex-col items-center space-y-12 mb-20">
+        <div className="w-full">
           <ScenarioGenerator />
-        </section>
+        </div>
 
       </div>
     </main>
