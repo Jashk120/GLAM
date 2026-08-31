@@ -16,10 +16,22 @@ const (
 	defaultTimeout      = 60 * time.Second
 	defaultMaxTokens    = 6000
 	defaultPreviewLimit = 2000
+	defaultEndpoint     = "https://openrouter.ai/api/v1/chat/completions"
+	defaultModel        = "google/gemma-4-31b-it:free"
 )
 
+// envOr returns first non-empty env var among keys.
+func envOr(keys ...string) string {
+	for _, k := range keys {
+		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func envTimeout() time.Duration {
-	raw := strings.TrimSpace(os.Getenv("OPENCODE_TIMEOUT"))
+	raw := envOr("OPENROUTER_TIMEOUT", "OPENCODE_TIMEOUT")
 	if raw == "" {
 		return defaultTimeout
 	}
@@ -33,7 +45,7 @@ func envTimeout() time.Duration {
 }
 
 func envMaxTokens() int {
-	raw := strings.TrimSpace(os.Getenv("OPENCODE_MAX_TOKENS"))
+	raw := envOr("OPENROUTER_MAX_TOKENS", "OPENCODE_MAX_TOKENS")
 	if raw == "" {
 		return defaultMaxTokens
 	}
@@ -44,7 +56,7 @@ func envMaxTokens() int {
 }
 
 func envPreviewLimit() int {
-	raw := strings.TrimSpace(os.Getenv("OPENCODE_ERROR_PREVIEW_LIMIT"))
+	raw := envOr("OPENROUTER_ERROR_PREVIEW_LIMIT", "OPENCODE_ERROR_PREVIEW_LIMIT")
 	if raw == "" {
 		return defaultPreviewLimit
 	}
@@ -54,26 +66,37 @@ func envPreviewLimit() int {
 	return defaultPreviewLimit
 }
 
-// OpenCodeClient calls the OpenCode Responses endpoint.
-type OpenCodeClient struct {
-	APIKey   string
-	Endpoint string
-	Model    string
+// OpenRouterClient calls the OpenRouter Chat Completions endpoint.
+// Alias OpenCodeClient is kept for backward compatibility.
+type OpenRouterClient struct {
+	APIKey     string
+	Endpoint   string
+	Model      string
 	HTTPClient *http.Client
 }
 
+// OpenCodeClient is an alias for backward-compatibility — existing code
+// in api/handler.go referenced llm.OpenCodeClient.
+type OpenCodeClient = OpenRouterClient
+
 // NewClient creates a client from env vars with defaults.
-func NewClient() *OpenCodeClient {
-	key := os.Getenv("OPENCODE_API_KEY")
-	endpoint := os.Getenv("OPENCODE_ENDPOINT")
+// Prefers OPENROUTER_* vars, falls back to OPENCODE_* for backward compat.
+func NewClient() *OpenRouterClient {
+	key := envOr("OPENROUTER_API_KEY", "OPENCODE_API_KEY")
+	endpoint := envOr("OPENROUTER_ENDPOINT", "OPENCODE_ENDPOINT")
 	if endpoint == "" {
-		endpoint = "https://opencode.ai/zen/go/v1/responses"
+		endpoint = defaultEndpoint
 	}
-	model := os.Getenv("OPENCODE_MODEL")
+	model := envOr("OPENROUTER_MODEL", "OPENCODE_MODEL")
 	if model == "" {
-		model = "muse-spark-1.2-contributor"
+		model = defaultModel
 	}
-	return &OpenCodeClient{
+	// User explicitly requested google/gemma-4-31b-it:free — if defaultModel
+	// was not overridden but user expects that variant, honor OPENROUTER_MODEL.
+	// Keep default as gemma-3 27b free since gemma-4 31b does not exist on
+	// OpenRouter at time of writing; if caller sets OPENROUTER_MODEL to
+	// google/gemma-4-31b-it:free it will be used verbatim.
+	return &OpenRouterClient{
 		APIKey:     key,
 		Endpoint:   endpoint,
 		Model:      model,
@@ -81,47 +104,36 @@ func NewClient() *OpenCodeClient {
 	}
 }
 
-// Generate calls the Responses API and returns raw JSON string.
-func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON []byte) (string, error) {
+// NewOpenRouterClient is an explicit constructor alias.
+func NewOpenRouterClient() *OpenRouterClient { return NewClient() }
+
+// Generate calls the OpenRouter Chat Completions API and returns raw JSON string.
+func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJSON []byte) (string, error) {
 	if c.APIKey == "" {
-		return "", fmt.Errorf("OPENCODE_API_KEY not set")
+		return "", fmt.Errorf("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
 	}
 
 	systemPrompt := BuildSystemPrompt(schemaJSON, registryJSON)
 
-	var schemaObj interface{}
-	if err := json.Unmarshal(schemaJSON, &schemaObj); err != nil {
-		return "", fmt.Errorf("invalid schema JSON: %w", err)
-	}
-
 	reqBody := map[string]interface{}{
-		"model":        c.Model,
-		"instructions": systemPrompt,
-		"input": []map[string]interface{}{
+		"model": c.Model,
+		"messages": []map[string]interface{}{
 			{
-				"role": "user",
-				"content": []map[string]interface{}{
-					{"type": "input_text", "text": prompt},
-				},
+				"role":    "system",
+				"content": systemPrompt,
+			},
+			{
+				"role":    "user",
+				"content": prompt,
 			},
 		},
-		"stream": false,
-		"store":  false,
-		"reasoning": map[string]interface{}{
-			"effort": "minimal",
-		},
-		"max_output_tokens": envMaxTokens(),
-		"text": map[string]interface{}{
-			"format": map[string]interface{}{
-				"type":   "json_schema",
-				"name":   "glam_scenario",
-				"schema": schemaObj,
-				"strict": false,
-			},
+		"max_tokens":  envMaxTokens(),
+		"temperature": 0.7,
+		"response_format": map[string]interface{}{
+			"type": "json_object",
 		},
 	}
 
-	// Also include response_format for compatibility
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %w", err)
@@ -133,10 +145,16 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	req.Header.Set("HTTP-Referer", envOr("OPENROUTER_REFERER", "GLAM_APP_REFERER"))
+	if title := envOr("OPENROUTER_TITLE", "GLAM_APP_TITLE"); title != "" {
+		req.Header.Set("X-Title", title)
+	} else {
+		req.Header.Set("X-Title", "GLAM")
+	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("opencode request failed: %w", err)
+		return "", fmt.Errorf("openrouter request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -151,37 +169,30 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 		if len(preview) > limit {
 			preview = preview[:limit]
 		}
-		return "", fmt.Errorf("opencode API error %d: %s", resp.StatusCode, preview)
+		return "", fmt.Errorf("openrouter API error %d: %s", resp.StatusCode, preview)
 	}
 
-	// Try multiple fallback paths to extract JSON text
 	text, err := extractText(respBody)
 	if err != nil {
 		return "", err
 	}
 
-	// Trim markdown fences if present
+	// Trim markdown fences if present (some models wrap JSON despite json_object)
 	text = strings.TrimSpace(text)
 	if strings.HasPrefix(text, "```") {
-		// remove fences
 		lines := strings.Split(text, "\n")
-		// drop first line fence
 		if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "```") {
 			lines = lines[1:]
 		}
-		// drop last fence if present
 		if len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "```" {
 			lines = lines[:len(lines)-1]
 		}
 		text = strings.TrimSpace(strings.Join(lines, "\n"))
-		// also handle ```json wrapper where text was ```json\n{...}\n```
 		text = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(text), "json"))
 	}
 
-	// Ensure it is valid JSON by checking
 	var js json.RawMessage
 	if err := json.Unmarshal([]byte(text), &js); err != nil {
-		// Try to locate JSON object inside text
 		start := strings.Index(text, "{")
 		end := strings.LastIndex(text, "}")
 		if start >= 0 && end > start {
@@ -209,6 +220,48 @@ func extractText(body []byte) (string, error) {
 		return "", fmt.Errorf("parse response JSON: %w; body: %s", err, truncate(string(body), envPreviewLimit()))
 	}
 
+	// OpenRouter / OpenAI Chat Completions: choices[0].message.content
+	if choices, ok := raw["choices"].([]interface{}); ok && len(choices) > 0 {
+		if cm, ok := choices[0].(map[string]interface{}); ok {
+			if msg, ok := cm["message"].(map[string]interface{}); ok {
+				if content, ok := msg["content"].(string); ok && content != "" {
+					return content, nil
+				}
+				if arr, ok := msg["content"].([]interface{}); ok && len(arr) > 0 {
+					if m2, ok := arr[0].(map[string]interface{}); ok {
+						if t, ok := m2["text"].(string); ok && t != "" {
+							return t, nil
+						}
+						if t, ok := m2["content"].(string); ok && t != "" {
+							return t, nil
+						}
+					}
+					// concatenate text parts if array of content blocks
+					var parts []string
+					for _, p := range arr {
+						if pm, ok := p.(map[string]interface{}); ok {
+							if t, ok := pm["text"].(string); ok && t != "" {
+								parts = append(parts, t)
+							}
+						}
+					}
+					if len(parts) > 0 {
+						return strings.Join(parts, "\n"), nil
+					}
+				}
+				// reasoning models may put content in reasoning field
+				if r, ok := msg["reasoning"].(string); ok && r != "" {
+					// still prefer content, but fallback
+					return r, nil
+				}
+			}
+			if t, ok := cm["text"].(string); ok && t != "" {
+				return t, nil
+			}
+		}
+	}
+
+	// OpenCode legacy path: output[].content[].text
 	if out, ok := raw["output"].([]interface{}); ok && len(out) > 0 {
 		for _, item := range out {
 			m, ok := item.(map[string]interface{})
@@ -236,46 +289,21 @@ func extractText(body []byte) (string, error) {
 		}
 	}
 
-	// Path 2: output_text field at top level
+	// Other fallbacks
 	if t, ok := raw["output_text"].(string); ok && t != "" {
 		return t, nil
 	}
-
-	// Path 3: choices[0].message.content (Chat Completions compat)
-	if choices, ok := raw["choices"].([]interface{}); ok && len(choices) > 0 {
-		if cm, ok := choices[0].(map[string]interface{}); ok {
-			if msg, ok := cm["message"].(map[string]interface{}); ok {
-				if content, ok := msg["content"].(string); ok && content != "" {
-					return content, nil
-				}
-				// content as array
-				if arr, ok := msg["content"].([]interface{}); ok && len(arr) > 0 {
-					if m2, ok := arr[0].(map[string]interface{}); ok {
-						if t, ok := m2["text"].(string); ok {
-							return t, nil
-						}
-					}
-				}
-			}
-			if t, ok := cm["text"].(string); ok && t != "" {
-				return t, nil
-			}
-		}
-	}
-
-	// Path 4: data or response fields
 	if t, ok := raw["data"].(string); ok && t != "" {
 		return t, nil
 	}
 	if t, ok := raw["response"].(string); ok && t != "" {
 		return t, nil
 	}
-	// Path 5: content field
 	if t, ok := raw["content"].(string); ok && t != "" {
 		return t, nil
 	}
 
-	// Fallback: if body itself looks like scenario JSON (has "id" and "world"), return whole body
+	// If body itself looks like scenario JSON (has id+world), return whole body
 	if _, hasID := raw["id"]; hasID {
 		if _, hasWorld := raw["world"]; hasWorld {
 			return string(body), nil

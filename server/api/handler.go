@@ -87,8 +87,8 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if h.LLM.APIKey == "" {
-		log.Println("OPENCODE_API_KEY not set")
-		writeError(w, http.StatusInternalServerError, "server not configured: OPENCODE_API_KEY missing", nil)
+		log.Println("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
+		writeError(w, http.StatusInternalServerError, "server not configured: OPENROUTER_API_KEY missing", nil)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		log.Printf("LLM generate error: %v", err)
 		// Distinguish provider errors as 502
 		msg := err.Error()
-		if strings.Contains(msg, "OPENCODE_API_KEY") {
+		if strings.Contains(msg, "OPENROUTER_API_KEY") || strings.Contains(msg, "OPENCODE_API_KEY") {
 			writeError(w, http.StatusInternalServerError, "server configuration error", nil)
 			return
 		}

@@ -33,10 +33,10 @@ if [ ! -f "$ROOT/server/.env" ] && [ ! -f "$ROOT/.env" ]; then
   yellow "⚠ no .env found — creating from example (edit it!)"
   cp "$ROOT/server/.env.example" "$ROOT/server/.env"
   yellow "  → $ROOT/server/.env created with placeholder key"
-  yellow "  → set OPENCODE_API_KEY=sk-... then re-run ./dev.sh"
+  yellow "  → set OPENROUTER_API_KEY=sk-or-... then re-run ./dev.sh"
 fi
 
-if grep -q "sk-your-key-here" "$ROOT/server/.env" 2>/dev/null; then
+if grep -q "sk-your-key-here\|sk-or-your-key-here" "$ROOT/server/.env" 2>/dev/null; then
   yellow "⚠ server/.env still has placeholder key — /api/scenario/generate will return 500 until you set a real key"
   yellow "  example scenarios + validation + Phaser still work without a key"
 fi
