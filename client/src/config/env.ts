@@ -9,6 +9,8 @@ export const API_CONFIG = {
   generateUrl: "/api/scenario/generate" as const,
   assetsUrl: "/api/assets" as const,
   healthUrl: "/health" as const,
+  scenariosUrl: "/api/scenarios" as const,
+  scenarioUrl: "/api/scenarios" as const,
 } as const;
 
 // Derive server origin for display (e.g., "http://localhost:8080" → ":8080" suffix)

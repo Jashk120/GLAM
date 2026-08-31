@@ -2,12 +2,12 @@ import "./style.css";
 import Phaser from "phaser";
 import { GameScene } from "./engine/Game";
 import { loadScenario } from "./engine/ScenarioLoader";
-import { TeacherUI } from "./teacher/TeacherUI";
 import { assetStreamer } from "./assets/AssetStreamer";
 import type { Scenario } from "./types/scenario";
 import { STORAGE_KEYS } from "./assets/storageKeys";
 import { TOAST_DURATION_MS, TOAST_COLORS } from "./engine/timingConstants";
 import { TILE } from "./world/renderConstants";
+import { API_CONFIG } from "./config/env";
 
 const statsBar = document.getElementById("statsBar") as HTMLElement;
 const missionList = document.getElementById("missionList") as HTMLElement;
@@ -18,12 +18,12 @@ const toastEl = document.getElementById("toast") as HTMLElement;
 const titleEl = document.getElementById("scenarioTitle") as HTMLElement;
 const selectEl = document.getElementById("scenarioSelect") as HTMLSelectElement;
 const restartBtn = document.getElementById("restartBtn") as HTMLButtonElement;
+const assetStatus = document.getElementById("assetStatus") as HTMLElement;
 
 let gameScene: GameScene | null = null;
 let currentScenario: Scenario | null = null;
 let currentSource = "/scenarios/example.json";
 
-// in-memory store for generated scenarios keyed by select value
 const generatedStore = new Map<string, Scenario>();
 
 function showToast(msg: string, ok = true): void {
@@ -62,10 +62,28 @@ const game = new Phaser.Game({
 
 game.events.on("ready", async () => {
   gameScene = scene;
-  await bootScenario(currentSource);
-  // Initialize asset status after first load
-  teacherUI.updateAssetStatus(currentScenario);
-  console.log("[GLAM] Load Example: booted", currentSource);
+  assetStatus.textContent = `Assets cached: ${assetStreamer.cachedCount()}/${assetStreamer.totalCount()}`;
+  assetStreamer.onStatus((msg) => {
+    assetStatus.textContent = msg;
+  });
+
+  const qp = new URLSearchParams(window.location.search);
+  const scenarioParam = qp.get("scenario") ?? qp.get("id") ?? qp.get("s");
+  if (scenarioParam) {
+    try {
+      await loadScenarioById(scenarioParam);
+    } catch (err) {
+      console.warn("[GLAM] Failed to load scenario from ?scenario=", scenarioParam, err);
+      showToast(`Scenario "${scenarioParam}" not found — loaded example`, false);
+      await bootScenario(currentSource);
+    }
+  } else {
+    await bootScenario(currentSource);
+  }
+
+  await refreshScenarioList();
+  updateAssetStatus(currentScenario);
+  console.log("[GLAM] Play booted", currentSource);
 });
 
 overlayEl.addEventListener("click", (e) => {
@@ -81,11 +99,113 @@ async function bootScenario(source: string | object): Promise<void> {
     game.scale.resize(w, h);
     await gameScene.loadScenarioData(sc);
     titleEl.textContent = sc.title;
-    teacherUI.updateAssetStatus(sc);
+    updateAssetStatus(sc);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     showToast(`❌ Failed to load scenario: ${msg}`, false);
     console.error(err);
+  }
+}
+
+async function loadScenarioById(id: string): Promise<void> {
+  const clean = id.trim();
+  if (!clean) throw new Error("empty id");
+
+  if (generatedStore.has(`generated:${clean}`)) {
+    const sc = generatedStore.get(`generated:${clean}`)!;
+    await bootScenario(sc as unknown as object);
+    return;
+  }
+  if (generatedStore.has(clean)) {
+    const sc = generatedStore.get(clean)!;
+    await bootScenario(sc as unknown as object);
+    return;
+  }
+
+  const url = `${API_CONFIG.scenariosUrl}/${encodeURIComponent(clean)}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const detail = (body as { error?: string }).error ?? `${res.status} ${res.statusText}`;
+    throw new Error(detail);
+  }
+  const body = (await res.json()) as { scenario?: unknown };
+  if (!body.scenario) throw new Error("Server returned no scenario");
+  const sc = body.scenario as Scenario;
+  generatedStore.set(`generated:${sc.id}`, sc);
+  generatedStore.set(sc.id, sc);
+  await bootScenario(sc as unknown as object);
+  addGeneratedOption(sc);
+  selectEl.value = `generated:${sc.id}`;
+}
+
+function addGeneratedOption(scenario: Scenario): void {
+  const value = `generated:${scenario.id}`;
+  const existing = [...selectEl.options].find((o) => o.value === value);
+  const label = `✨ ${scenario.title}`;
+  if (existing) {
+    existing.textContent = label;
+    return;
+  }
+  const opt = document.createElement("option");
+  opt.value = value;
+  opt.textContent = label;
+  selectEl.appendChild(opt);
+}
+
+function updateAssetStatus(scenario: Scenario | null): void {
+  if (scenario) {
+    assetStatus.textContent = assetStreamer.statusTextForScenario(scenario);
+  } else {
+    assetStatus.textContent = `Assets cached: ${assetStreamer.cachedCount()}/${assetStreamer.totalCount()}`;
+  }
+}
+
+async function refreshScenarioList(): Promise<void> {
+  try {
+    const res = await fetch(API_CONFIG.scenariosUrl);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { scenarios?: Array<{ id: string; title: string; filename: string; generated: boolean }> };
+    const list = data.scenarios ?? [];
+    if (list.length === 0) return;
+
+    for (const item of list) {
+      if (item.id === "money-management-town") continue;
+      const value = `generated:${item.id}`;
+      if ([...selectEl.options].some((o) => o.value === value)) continue;
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = item.generated ? `✨ ${item.title}` : item.title;
+      selectEl.appendChild(opt);
+
+      try {
+        const r = await fetch(`${API_CONFIG.scenariosUrl}/${encodeURIComponent(item.id)}`);
+        if (r.ok) {
+          const b = (await r.json()) as { scenario?: Scenario };
+          if (b.scenario) generatedStore.set(value, b.scenario as Scenario);
+        }
+      } catch {
+        // ignore per-item preload failure
+      }
+    }
+
+    if (list.length > 1) {
+      console.log(`[GLAM] Loaded ${list.length} scenarios from server`);
+    }
+  } catch (err) {
+    console.warn("[GLAM] Could not fetch scenarios list, using local cache", err);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.lastGenerated);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Scenario;
+        if (parsed?.id) {
+          generatedStore.set(`generated:${parsed.id}`, parsed);
+          addGeneratedOption(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -94,25 +214,11 @@ selectEl.addEventListener("change", () => {
   if (val.startsWith("generated:")) {
     const sc = generatedStore.get(val);
     if (sc) {
-      console.log("[GLAM] Play Generated:", sc.id);
       void bootScenario(sc as unknown as object);
       return;
     }
-    // Fallback: try localStorage
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.lastGenerated);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Scenario;
-        if (`generated:${parsed.id}` === val) {
-          generatedStore.set(val, parsed);
-          void bootScenario(parsed as unknown as object);
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    showToast("Generated scenario not found in memory. Please generate again.", false);
+    const id = val.replace(/^generated:/, "");
+    void loadScenarioById(id);
     return;
   }
   currentSource = val;
@@ -124,7 +230,6 @@ restartBtn.addEventListener("click", () => {
   else void bootScenario(currentSource);
 });
 
-// Expose for dev
 declare global {
   interface Window {
     Glam: {
@@ -145,49 +250,6 @@ window.Glam = {
   getGame: () => game,
 };
 
-// Teacher UI wiring
-const promptInput = document.getElementById("promptInput") as HTMLTextAreaElement;
-const generateBtn = document.getElementById("generateBtn") as HTMLButtonElement;
-const genStatus = document.getElementById("genStatus") as HTMLElement;
-const genError = document.getElementById("genError") as HTMLElement;
-const assetStatus = document.getElementById("assetStatus") as HTMLElement;
-
-const teacherUI = new TeacherUI({
-  promptInput,
-  generateBtn,
-  genStatus,
-  genError,
-  assetStatus,
-  scenarioSelect: selectEl,
-  toast: showToast,
-  getCurrentScenario: () => currentScenario,
-  onGenerated: async (scenario: Scenario) => {
-    const key = `generated:${scenario.id}`;
-    generatedStore.set(key, scenario);
-    console.log("[GLAM] Teacher -> Go -> Phaser flow: loadScenario", scenario.id);
-    await bootScenario(scenario as unknown as object);
-  },
-});
-
-promptInput.addEventListener("focus", () => {
-  document.body.classList.add("teacher-typing");
-  try {
-    const kb = (gameScene as unknown as { input?: { keyboard?: { enabled: boolean } } })?.input?.keyboard;
-    if (kb) kb.enabled = false;
-  } catch {}
-});
-promptInput.addEventListener("blur", () => {
-  document.body.classList.remove("teacher-typing");
-  try {
-    const kb = (gameScene as unknown as { input?: { keyboard?: { enabled: boolean } } })?.input?.keyboard;
-    if (kb) kb.enabled = true;
-  } catch {}
-});
-
-// Initial asset status before scenario loads
-assetStatus.textContent = `Assets cached: ${assetStreamer.cachedCount()}/${assetStreamer.totalCount()}`;
-
-// Restore generated from localStorage into store + selector on startup
 try {
   const raw = localStorage.getItem(STORAGE_KEYS.lastGenerated);
   if (raw) {

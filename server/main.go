@@ -133,6 +133,9 @@ func main() {
 	mux.HandleFunc("/api/assets", h.HandleAssets)
 	mux.HandleFunc("/api/scenario/validate", h.HandleValidate)
 	mux.HandleFunc("/api/scenario/generate", h.HandleGenerate)
+	mux.HandleFunc("/api/scenarios", h.HandleListScenarios)
+	mux.HandleFunc("/api/scenarios/", h.HandleGetScenario)
+	mux.HandleFunc("/api/scenario/", h.HandleGetScenario)
 
 	handler := withCORS(withLogging(mux))
 

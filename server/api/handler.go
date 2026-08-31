@@ -234,6 +234,213 @@ func (h *Handler) HandleAssets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, assets)
 }
 
+func (h *Handler) HandleListScenarios(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+	dir := scenariosDir(h.SchemaPath)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		// fallback to cwd scenarios
+		entries, err = os.ReadDir("scenarios")
+		if err != nil {
+			writeJSON(w, http.StatusOK, map[string]interface{}{"scenarios": []interface{}{}})
+			return
+		}
+		dir = "scenarios"
+	}
+	out := []map[string]interface{}{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(dir, e.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var obj map[string]interface{}
+		if err := json.Unmarshal(data, &obj); err != nil {
+			continue
+		}
+		id, _ := obj["id"].(string)
+		title, _ := obj["title"].(string)
+		if id == "" {
+			id = strings.TrimSuffix(e.Name(), ".json")
+		}
+		if title == "" {
+			title = id
+		}
+		isGen := strings.HasPrefix(e.Name(), "generated_")
+		out = append(out, map[string]interface{}{
+			"id":        id,
+			"title":     title,
+			"filename":  e.Name(),
+			"generated": isGen,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]interface{}{"scenarios": out})
+}
+
+func (h *Handler) HandleGetScenario(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed", nil)
+		return
+	}
+	// Extract id from path /api/scenarios/{id} or query ?id=
+	id := strings.TrimPrefix(r.URL.Path, "/api/scenarios/")
+	id = strings.TrimPrefix(id, "/")
+	// Handle case where path was /api/scenario/{id} legacy
+	if id == "" || strings.Contains(id, "/") {
+		// Try query param
+		q := r.URL.Query().Get("id")
+		if q != "" {
+			id = q
+		} else if id != "" && strings.Contains(id, "/") {
+			parts := strings.Split(id, "/")
+			id = parts[len(parts)-1]
+		}
+	}
+	if qp := r.URL.Query().Get("id"); qp != "" && id == "" {
+		id = qp
+	}
+	id = strings.TrimSpace(id)
+	if id == "" {
+		// Also try /api/scenario/{id} form
+		if strings.HasPrefix(r.URL.Path, "/api/scenario/") {
+			id = strings.TrimPrefix(r.URL.Path, "/api/scenario/")
+			id = strings.TrimSpace(id)
+		}
+	}
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "missing scenario id", []string{"use /api/scenarios/{id} or ?id="})
+		return
+	}
+	// Sanitize but keep original for comparison
+	dir := scenariosDir(h.SchemaPath)
+	// Try direct filename first: {id}.json and generated_{id}.json
+	candidates := []string{
+		filepath.Join(dir, id+".json"),
+		filepath.Join(dir, "generated_"+sanitizeFilename(id)+".json"),
+		filepath.Join(dir, sanitizeFilename(id)),
+	}
+	// Also search by scanning all files for matching id field
+	var found []byte
+	var foundObj map[string]interface{}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		entries, _ = os.ReadDir("scenarios")
+		dir = "scenarios"
+	}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		path := filepath.Join(dir, e.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		var obj map[string]interface{}
+		if err := json.Unmarshal(data, &obj); err != nil {
+			continue
+		}
+		oid, _ := obj["id"].(string)
+		if oid == id {
+			found = data
+			foundObj = obj
+			break
+		}
+		// also match filename without extension
+		if strings.TrimSuffix(e.Name(), ".json") == id || strings.TrimSuffix(e.Name(), ".json") == "generated_"+id {
+			found = data
+			foundObj = obj
+			break
+		}
+	}
+	// Fallback to candidate paths if not found via scan
+	if found == nil {
+		for _, p := range candidates {
+			if data, err := os.ReadFile(p); err == nil {
+				var obj map[string]interface{}
+				if err := json.Unmarshal(data, &obj); err == nil {
+					found = data
+					foundObj = obj
+					break
+				}
+			}
+		}
+	}
+	if found == nil {
+		writeError(w, http.StatusNotFound, "scenario not found", []string{fmt.Sprintf("id %q not found", id)})
+		return
+	}
+	// Validate before returning? Just return raw
+	_ = foundObj
+	writeJSON(w, http.StatusOK, map[string]interface{}{"scenario": foundObj, "raw": string(found)})
+}
+
+func scenariosDir(schemaPath string) string {
+	if schemaPath != "" {
+		dir := filepath.Join(filepath.Dir(schemaPath), "..", "scenarios")
+		if _, err := os.Stat(dir); err == nil {
+			if abs, err := filepath.Abs(dir); err == nil {
+				return abs
+			}
+			return dir
+		}
+		// Also try schema dir's parent absolute
+		if abs, err := filepath.Abs(dir); err == nil {
+			if _, err := os.Stat(abs); err == nil {
+				return abs
+			}
+		}
+	}
+	// Try GLAM_ROOT
+	if root := os.Getenv("GLAM_ROOT"); root != "" {
+		cand := filepath.Join(root, "scenarios")
+		if _, err := os.Stat(cand); err == nil {
+			return cand
+		}
+	}
+	// Try executable location
+	if exe, err := os.Executable(); err == nil {
+		base := filepath.Dir(exe)
+		for _, c := range []string{
+			filepath.Join(base, "scenarios"),
+			filepath.Join(base, "..", "scenarios"),
+			filepath.Join(filepath.Dir(base), "scenarios"),
+		} {
+			if _, err := os.Stat(c); err == nil {
+				if abs, err := filepath.Abs(c); err == nil {
+					return abs
+				}
+				return c
+			}
+		}
+	}
+	// Fallback to cwd
+	if _, err := os.Stat("scenarios"); err == nil {
+		if abs, err := filepath.Abs("scenarios"); err == nil {
+			return abs
+		}
+		return "scenarios"
+	}
+	return "scenarios"
+}
+
 func HandleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
@@ -271,11 +478,51 @@ func saveGenerated(obj map[string]interface{}) error {
 	if id == "" {
 		id = fmt.Sprintf("generated_%d", time.Now().Unix())
 	}
-	// Ensure directory exists
-	dir := "scenarios"
-	// Try relative to working dir, also try parent of schema path
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		// try finding project root via schema path
+	dir := ""
+	if root := os.Getenv("GLAM_ROOT"); root != "" {
+		cand := filepath.Join(root, "scenarios")
+		if _, err := os.Stat(cand); err == nil {
+			dir = cand
+		} else {
+			_ = os.MkdirAll(cand, 0755)
+			dir = cand
+		}
+	}
+	if dir == "" {
+		for _, cand := range []string{"scenarios", "../scenarios", "../../scenarios"} {
+			if _, err := os.Stat(cand); err == nil {
+				if abs, err := filepath.Abs(cand); err == nil {
+					dir = abs
+				} else {
+					dir = cand
+				}
+				break
+			}
+		}
+	}
+	if dir == "" {
+		if exe, err := os.Executable(); err == nil {
+			base := filepath.Dir(exe)
+			for _, cand := range []string{
+				filepath.Join(base, "scenarios"),
+				filepath.Join(base, "..", "scenarios"),
+				filepath.Join(filepath.Dir(base), "scenarios"),
+			} {
+				if _, err := os.Stat(cand); err == nil {
+					if abs, err := filepath.Abs(cand); err == nil {
+						dir = abs
+					} else {
+						dir = cand
+					}
+					break
+				}
+			}
+		}
+	}
+	if dir == "" {
+		dir = "scenarios"
+		_ = os.MkdirAll(dir, 0755)
+	} else {
 		_ = os.MkdirAll(dir, 0755)
 	}
 	filename := filepath.Join(dir, fmt.Sprintf("generated_%s.json", sanitizeFilename(id)))

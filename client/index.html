@@ -3,31 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GLAM — Scenario Engine</title>
+  <title>GLAM — Play</title>
 </head>
 <body>
-  <h1>🎮 GLAM — Scenario Engine</h1>
-  <div id="sub">One engine — any lesson. Scenarios are just JSON.</div>
-
-  <!-- Teacher Panel -->
-  <section id="teacherPanel">
-    <div class="teacherCard">
-      <div class="teacherHeader">
-        <span class="teacherIcon">🧑‍🏫</span>
-        <div>
-          <h2>Teacher — Generate Scenario</h2>
-          <p class="teacherHint">Describe a lesson. AI generates a playable world. Streaming cache warms automatically.</p>
-        </div>
-      </div>
-      <textarea id="promptInput" rows="3" placeholder="Create a small town where students learn basic money management."></textarea>
-      <div class="teacherRow">
-        <button id="generateBtn" class="primaryBtn">✨ Generate Scenario</button>
-        <span id="genStatus" class="genStatus"></span>
-      </div>
-      <div id="genError" class="genError"></div>
-      <div id="assetStatus" class="assetStatus">Assets cached: —</div>
-    </div>
-  </section>
+  <h1>🎮 GLAM — Play</h1>
+  <div id="sub">One engine — any lesson. Your teacher crafted this world for you.</div>
 
   <div id="scenarioTitle"></div>
   <div id="topbar">
@@ -37,6 +17,7 @@
     <button id="restartBtn">🔄 Restart</button>
     <div id="statsBar"></div>
   </div>
+  <div id="assetStatus" class="assetStatus">Assets cached: —</div>
   <div id="main">
     <div id="gameWrap">
       <div id="game"></div>
