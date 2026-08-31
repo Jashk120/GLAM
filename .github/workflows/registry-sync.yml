@@ -5,9 +5,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install client deps
+        run: cd client && npm ci
+      - name: Install teacher-interface deps
+        run: cd teacher-interface && npm ci
       - name: Registry sync check
         run: make registry-check
-      - name: Go vet
-        run: go vet ./...
-      - name: TypeScript check
-        run: cd client && npx tsc --noEmit
+      - name: Vet
+        run: make vet
+      - name: Build
+        run: make build
