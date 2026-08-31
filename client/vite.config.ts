@@ -1,14 +1,20 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 
-export default defineConfig({
-  server: {
-    port: 5173,
-    proxy: {
-      "/api": {
-        target: "http://localhost:8080",
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, ".", "");
+  const clientPort = Number(env.VITE_PORT ?? env.PORT_CLIENT ?? 5173);
+  const serverPort = Number(env.PORT ?? env.VITE_SERVER_PORT ?? 8080);
+  const apiTarget = env.VITE_API_BASE_URL ?? `http://localhost:${serverPort}`;
+  return {
+    server: {
+      port: clientPort,
+      proxy: {
+        "/api": {
+          target: apiTarget,
+          changeOrigin: true,
+        },
       },
     },
-  },
-  publicDir: "public",
+    publicDir: "public",
+  };
 });

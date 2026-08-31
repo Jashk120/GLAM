@@ -1,0 +1,13 @@
+name: registry-sync
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Registry sync check
+        run: make registry-check
+      - name: Go vet
+        run: go vet ./...
+      - name: TypeScript check
+        run: cd client && npx tsc --noEmit

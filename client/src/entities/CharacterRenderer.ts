@@ -1,37 +1,73 @@
 import type { Character } from "../types/scenario";
 import { resolveAsset } from "../engine/AssetResolver";
-import { TILE } from "../world/WorldRenderer";
+import { TILE } from "../world/renderConstants";
+import {
+  CHARACTER_FALLBACK,
+  ENTITY_FONTS,
+  ENTITY_LABEL_STYLE,
+} from "./entityConstants";
 
 export class CharacterRenderer {
   static render(scene: Phaser.Scene, char: Character): Phaser.GameObjects.Container {
     const assetId = char.appearance?.spriteId;
     const resolved = assetId ? resolveAsset(assetId) : null;
-    const icon = resolved?.icon ?? "🧑";
-    const x = char.position.x * TILE + TILE / 2;
-    const y = char.position.y * TILE + TILE / 2;
+    const icon = resolved?.icon ?? CHARACTER_FALLBACK.iconFallback;
+    const colorStr = char.appearance?.color ?? CHARACTER_FALLBACK.defaultColor;
+    let shirtColor: number = CHARACTER_FALLBACK.fallbackShirtColor;
+    try {
+      shirtColor = Phaser.Display.Color.HexStringToColor(colorStr).color;
+    } catch {
+      shirtColor = CHARACTER_FALLBACK.fallbackShirtColor;
+    }
 
-    const bg = scene.add.rectangle(0, 0, 28, 28, Phaser.Display.Color.HexStringToColor(char.appearance?.color ?? "#3a6ea5").color, 0.92);
-    bg.setStrokeStyle(2, 0xffffff, 0.9);
-    bg.setOrigin(0.5);
+    const cx = char.position.x * TILE + TILE / 2;
+    const bottomY = (char.position.y + 1) * TILE;
+    const container = scene.add.container(cx, bottomY);
+    container.setDepth(bottomY);
+    container.setData("entityId", char.id);
+    container.setData("kind", "character");
 
-    const label = scene.add.text(0, -18, char.name, {
-      fontSize: "9px",
-      color: "#ffffff",
-      backgroundColor: "#000000aa",
-      padding: { left: 2, right: 2, top: 1, bottom: 1 },
+    const g = scene.add.graphics();
+    g.fillStyle(CHARACTER_FALLBACK.shadow, CHARACTER_FALLBACK.shadowOpacity);
+    g.fillEllipse(0, -2, 14, 5);
+    g.fillStyle(CHARACTER_FALLBACK.pantsColor, 1);
+    g.fillRect(-6, -6, 5, 4);
+    g.fillRect(1, -6, 5, 4);
+    g.fillStyle(shirtColor, 1);
+    g.fillRect(-7, -18, 14, 10);
+    g.fillStyle(CHARACTER_FALLBACK.shadow, 0.08);
+    g.fillRect(-7, -10, 14, 2);
+    g.lineStyle(1, CHARACTER_FALLBACK.skinStroke, 0.95);
+    g.strokeRect(-7, -18, 14, 10);
+    g.fillStyle(CHARACTER_FALLBACK.skinColor, 1);
+    g.fillRect(-6, -28, 12, 11);
+    g.lineStyle(1, CHARACTER_FALLBACK.skinStroke, 0.95);
+    g.strokeRect(-6, -28, 12, 11);
+    const isTeacher = assetId === "character_teacher";
+    const isRanger = assetId === "character_ranger";
+    const capColor: number = isTeacher ? CHARACTER_FALLBACK.capTeacher : isRanger ? CHARACTER_FALLBACK.capRanger : CHARACTER_FALLBACK.capDefault;
+    g.fillStyle(capColor, 1);
+    g.fillRect(-6, -30, 12, 5);
+    g.fillRect(-7, -28, 14, 2);
+    g.fillStyle(CHARACTER_FALLBACK.eyeColor, 1);
+    g.fillRect(-3, -22, 2, 2);
+    g.fillRect(1, -22, 2, 2);
+    g.fillStyle(CHARACTER_FALLBACK.blushColor, 0.55);
+    g.fillRect(-4, -19, 3, 1);
+    g.fillRect(1, -19, 3, 1);
+    container.add(g);
+    const badge = scene.add.text(7, -27, icon, { fontSize: ENTITY_FONTS.characterBadge });
+    badge.setOrigin(0.5);
+
+    const label = scene.add.text(0, -36, char.name, {
+      fontSize: ENTITY_FONTS.characterLabel,
+      color: ENTITY_LABEL_STYLE.textColor,
+      backgroundColor: ENTITY_LABEL_STYLE.characterBg,
+      padding: ENTITY_LABEL_STYLE.padding,
     });
     label.setOrigin(0.5);
 
-    const emoji = scene.add.text(0, 2, icon, {
-      fontSize: "18px",
-    });
-    emoji.setOrigin(0.5);
-
-    const container = scene.add.container(x, y, [bg, emoji, label]);
-    container.setDepth(y);
-    // store id for lookup
-    container.setData("entityId", char.id);
-    container.setData("kind", "character");
+    container.add([badge, label]);
     return container;
   }
 }

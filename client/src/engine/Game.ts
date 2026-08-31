@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { Scenario, EntityRef } from "../types/scenario";
-import { WorldRenderer, TILE } from "../world/WorldRenderer";
+import { WorldRenderer } from "../world/WorldRenderer";
+import { TILE } from "../world/renderConstants";
 import { CharacterRenderer } from "../entities/CharacterRenderer";
 import { BuildingRenderer } from "../entities/BuildingRenderer";
 import { ObjectRenderer } from "../entities/ObjectRenderer";
@@ -9,6 +10,15 @@ import { MissionManager } from "./MissionManager";
 import { InteractionManager } from "../interactions/InteractionManager";
 import { getLayout, isSolidTile, isWalkable } from "../world/layouts";
 import type { WorldLayout } from "../world/layouts";
+import { DEFAULT_INITIAL_STATS } from "./gameConstants";
+import { TOAST_DURATION_MS, MOVEMENT_COOLDOWN_MS } from "./timingConstants";
+import { TOAST_COLORS } from "./timingConstants";
+import {
+  PLAYER_COLORS,
+  ENTITY_FONTS,
+  ENTITY_LABEL_STYLE,
+  CHARACTER_FALLBACK,
+} from "../entities/entityConstants";
 
 export class GameScene extends Phaser.Scene {
   private scenario!: Scenario;
@@ -22,7 +32,7 @@ export class GameScene extends Phaser.Scene {
   private interactKey!: Phaser.Input.Keyboard.Key;
   private missionManager!: MissionManager;
   private interactionManager!: InteractionManager;
-  private stats: Record<string, number> = { coins: 40 };
+  private stats: Record<string, number> = { ...DEFAULT_INITIAL_STATS };
   private moveCooldown = 0;
   private containers: Phaser.GameObjects.Container[] = [];
   private graphics!: Phaser.GameObjects.Graphics;
@@ -46,7 +56,7 @@ export class GameScene extends Phaser.Scene {
   }
   async loadScenarioData(scenario: Scenario): Promise<void> {
     this.scenario = scenario;
-    this.stats = { coins: 40, lives: 3, score: 0 };
+    this.stats = { ...DEFAULT_INITIAL_STATS, ...(scenario.initialStats ?? {}) };
     this.opts.titleEl.textContent = scenario.title;
     this.entities = this.buildEntityRefs(scenario);
     this.layout = getLayout(scenario.world.template, scenario.world.size);
@@ -129,7 +139,7 @@ export class GameScene extends Phaser.Scene {
     const out: EntityRef[] = [];
     for (const c of scenario.characters) {
       const r = c.appearance?.spriteId ? resolveAsset(c.appearance.spriteId) : null;
-      out.push({ kind: "character", id: c.id, position: c.position, name: c.name, interaction: c.interaction, solid: r ? r.solid : true, icon: r?.icon ?? "🧑", width: 1, height: 1, raw: c });
+      out.push({ kind: "character", id: c.id, position: c.position, name: c.name, interaction: c.interaction, solid: r ? r.solid : true, icon: r?.icon ?? CHARACTER_FALLBACK.iconFallback, width: 1, height: 1, raw: c });
     }
     for (const b of scenario.buildings) {
       const r = resolveAsset(b.typeAssetId);
@@ -142,11 +152,40 @@ export class GameScene extends Phaser.Scene {
     return out;
   }
   private createPlayerSprite(x: number, y: number): Phaser.GameObjects.Container {
-    const px = x * TILE + TILE / 2, py = y * TILE + TILE / 2;
-    const bg = this.add.rectangle(0, 0, 28, 28, 0x2d7df6, 1);
-    bg.setStrokeStyle(2, 0xffffff, 1);
-    const emoji = this.add.text(0, 1, "🧑", { fontSize: "18px" }); emoji.setOrigin(0.5);
-    const c = this.add.container(px, py, [bg, emoji]); c.setDepth(1000); return c;
+    const cx = x * TILE + TILE / 2;
+    const bottomY = (y + 1) * TILE;
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, PLAYER_COLORS.shadowOpacity);
+    g.fillEllipse(0, -2, 14, 5);
+    g.fillStyle(PLAYER_COLORS.pants, 1);
+    g.fillRect(-6, -6, 5, 4);
+    g.fillRect(1, -6, 5, 4);
+    g.fillStyle(PLAYER_COLORS.shirt, 1);
+    g.fillRect(-7, -18, 14, 10);
+    g.fillStyle(0x000000, 0.08);
+    g.fillRect(-7, -10, 14, 2);
+    g.lineStyle(1, 0xffffff, 0.95);
+    g.strokeRect(-7, -18, 14, 10);
+    g.fillStyle(PLAYER_COLORS.skin, 1);
+    g.fillRect(-6, -28, 12, 11);
+    g.lineStyle(1, CHARACTER_FALLBACK.skinStroke, 0.95);
+    g.strokeRect(-6, -28, 12, 11);
+    g.fillStyle(PLAYER_COLORS.cap, 1);
+    g.fillRect(-6, -30, 12, 5);
+    g.fillRect(-7, -28, 14, 2);
+    g.fillStyle(CHARACTER_FALLBACK.eyeColor, 1);
+    g.fillRect(-3, -22, 2, 2);
+    g.fillRect(1, -22, 2, 2);
+    const label = this.add.text(0, -36, "YOU", {
+      fontSize: ENTITY_FONTS.playerLabel,
+      color: ENTITY_LABEL_STYLE.textColor,
+      backgroundColor: ENTITY_LABEL_STYLE.playerBg,
+      padding: ENTITY_LABEL_STYLE.padding,
+    });
+    label.setOrigin(0.5);
+    const c = this.add.container(cx, bottomY, [g, label]);
+    c.setDepth(bottomY);
+    return c;
   }
   private isSolidAt(x: number, y: number): boolean {
     const { cols, rows } = this.scenario.world.size;
@@ -178,14 +217,19 @@ export class GameScene extends Phaser.Scene {
     else if (Phaser.Input.Keyboard.JustDown(this.cursors.right!) || Phaser.Input.Keyboard.JustDown(this.wasd["D"])) dx = 1;
     if (dx !== 0 || dy !== 0) {
       const nx = this.playerPos.x + dx, ny = this.playerPos.y + dy;
-      if (!this.isSolidAt(nx, ny)) { this.playerPos.x = nx; this.playerPos.y = ny; this.player.setPosition(nx * TILE + TILE / 2, ny * TILE + TILE / 2); this.player.setDepth(1000); }
-      this.moveCooldown = time + 120; this.interactionManager.tick();
+      if (!this.isSolidAt(nx, ny)) {
+        this.playerPos.x = nx;
+        this.playerPos.y = ny;
+        this.player.setPosition(nx * TILE + TILE / 2, (ny + 1) * TILE);
+        this.player.setDepth((ny + 1) * TILE);
+      }
+      this.moveCooldown = time + MOVEMENT_COOLDOWN_MS; this.interactionManager.tick();
     }
   }
   private renderStats(): void {
     this.opts.statsBar.innerHTML = Object.entries(this.stats).map(([k, v]) => {
       const icon = k === "coins" ? "💰" : k === "lives" ? "❤️" : "⭐";
-      return `<div class="stat"><span>${icon}</span> <span id="stat_${k}">${v}</span> <span style="font-size:11px;opacity:0.7">${k}</span></div>`;
+      return `<div class="stat"><span>${icon}</span> <span id="stat_${k}">${v}</span> <span class="stat-label">${k}</span></div>`;
     }).join("");
   }
   private updateStat(key: string, delta: number): void {
@@ -195,9 +239,9 @@ export class GameScene extends Phaser.Scene {
     if (el) el.textContent = String(this.stats[key]); else this.renderStats();
   }
   private showToast(msg: string, ok = true): void {
-    const t = this.opts.toast; t.textContent = msg; t.style.background = ok ? "#2e7d32" : "#c62828"; t.style.display = "block";
+    const t = this.opts.toast; t.textContent = msg; t.style.background = ok ? TOAST_COLORS.success : TOAST_COLORS.error; t.style.display = "block";
     const existing = (t as unknown as { _timer?: number })._timer;
     if (existing) window.clearTimeout(existing);
-    (t as unknown as { _timer: number })._timer = window.setTimeout(() => { t.style.display = "none"; }, 2600);
+    (t as unknown as { _timer: number })._timer = window.setTimeout(() => { t.style.display = "none"; }, TOAST_DURATION_MS);
   }
 }

@@ -1,6 +1,14 @@
 import type { Scenario, Position, Size } from "../types/scenario";
 import { hasAsset } from "../assets/assetRegistry";
 import { assetStreamer } from "../assets/AssetStreamer";
+import {
+  WORLD_COLS_MAX,
+  WORLD_COLS_MIN,
+  WORLD_POS_MAX,
+  WORLD_POS_MIN,
+  WORLD_ROWS_MAX,
+  WORLD_ROWS_MIN,
+} from "../world/worldConstants";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -15,8 +23,8 @@ function validatePosition(pos: unknown, path: string): void {
   const r = pos as Record<string, unknown>;
   assert(typeof r["x"] === "number" && Number.isInteger(r["x"]), `${path}.x must be integer`);
   assert(typeof r["y"] === "number" && Number.isInteger(r["y"]), `${path}.y must be integer`);
-  assert((r["x"] as number) >= 0 && (r["x"] as number) <= 30, `${path}.x out of bounds [0,30]`);
-  assert((r["y"] as number) >= 0 && (r["y"] as number) <= 30, `${path}.y out of bounds [0,30]`);
+  assert((r["x"] as number) >= WORLD_POS_MIN && (r["x"] as number) <= WORLD_POS_MAX, `${path}.x out of bounds [${WORLD_POS_MIN},${WORLD_POS_MAX}]`);
+  assert((r["y"] as number) >= WORLD_POS_MIN && (r["y"] as number) <= WORLD_POS_MAX, `${path}.y out of bounds [${WORLD_POS_MIN},${WORLD_POS_MAX}]`);
 }
 
 function validateSize(size: unknown, path: string): void {
@@ -24,8 +32,8 @@ function validateSize(size: unknown, path: string): void {
   const r = size as Record<string, unknown>;
   assert(typeof r["cols"] === "number" && Number.isInteger(r["cols"]), `${path}.cols must be integer`);
   assert(typeof r["rows"] === "number" && Number.isInteger(r["rows"]), `${path}.rows must be integer`);
-  assert((r["cols"] as number) >= 8 && (r["cols"] as number) <= 30, `${path}.cols out of bounds [8,30]`);
-  assert((r["rows"] as number) >= 8 && (r["rows"] as number) <= 20, `${path}.rows out of bounds [8,20]`);
+  assert((r["cols"] as number) >= WORLD_COLS_MIN && (r["cols"] as number) <= WORLD_COLS_MAX, `${path}.cols out of bounds [${WORLD_COLS_MIN},${WORLD_COLS_MAX}]`);
+  assert((r["rows"] as number) >= WORLD_ROWS_MIN && (r["rows"] as number) <= WORLD_ROWS_MAX, `${path}.rows out of bounds [${WORLD_ROWS_MIN},${WORLD_ROWS_MAX}]`);
 }
 
 function inBounds(pos: Position, size: Size): boolean {

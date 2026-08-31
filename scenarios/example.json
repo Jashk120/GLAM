@@ -253,6 +253,11 @@
         "entityId": "town_bank"
       },
       "checkAtEnd": true,
+      "requiredStat": {
+        "stat": "coins",
+        "operator": ">=",
+        "target": 10
+      },
       "done": false
     }
   ]

@@ -4,8 +4,7 @@ export { showMath } from "./MathActivity";
 export { showShop } from "./ShopActivity";
 export { showInformation } from "./InformationActivity";
 
-import type { Interaction } from "../types/scenario";
-
-export type InteractionType = Interaction["type"];
-
-export const INTERACTION_TYPES: InteractionType[] = ["dialogue", "mcq", "math", "shop", "information"];
+// canonical: schema/scenario.schema.json — interaction types
+// Re-export shared constants to avoid duplication; source is client/src/types/interactionTypes.ts
+export { INTERACTION_TYPES, VALID_INTERACTION_TYPES, isValidInteractionType } from "../types/interactionTypes";
+export type { InteractionType } from "../types/interactionTypes";
