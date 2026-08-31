@@ -5,6 +5,9 @@ server/tmp/main
 server/build-errors.log
 client/node_modules/
 client/dist/
+teacher-interface/node_modules/
+teacher-interface/.next/
+teacher-interface/.env
 scenarios/generated_*.json
 /tmp/
 .DS_Store
@@ -16,3 +19,4 @@ scenario-engine-demo.html
 # air + go build
 tmp/
 .omo/
+server/scenarios/generated_*.json

@@ -1,4 +1,20 @@
+// NOTE: Mirrored in server/world/forest.go — keep in sync. Registry CI will fail if diff changes. Canonical layout: server/world/forest.go & client/src/world/layouts.ts
 import type { TemplateType } from "../types/scenario";
+import {
+  FOREST_CLEARING_H_FACTOR,
+  FOREST_CLEARING_MIN_SIZE,
+  FOREST_CLEARING_W_FACTOR_A,
+  FOREST_CLEARING_W_FACTOR_B,
+  FOREST_HASH_A,
+  FOREST_HASH_B,
+  FOREST_HASH_MOD,
+  FOREST_HASH_RANGE,
+  FOREST_TREE_DENSITY_THRESHOLD,
+  WORLD_COLS_MAX,
+  WORLD_COLS_MIN,
+  WORLD_ROWS_MAX,
+  WORLD_ROWS_MIN,
+} from "./worldConstants";
 export type TileKind = "grass" | "path" | "tree" | "water";
 export interface Plot { id: string; name: string; x: number; y: number; width: number; height: number; type: "plot" | "clearing"; }
 export interface WorldLayout { tilemap: TileKind[][]; plots: Plot[]; spawn: { x: number; y: number }; }
@@ -58,7 +74,7 @@ export function getForestLayout(cols: number, rows: number): { tilemap: TileKind
       { id: "clearing_4", name: "Southeast Clearing", x: 9, y: 8, width: 4, height: 3, type: "clearing" },
     ];
   } else {
-    const wA = Math.max(2, Math.floor(cols * 0.27)), hA = Math.max(2, Math.floor(rows * 0.25)), wB = Math.max(2, Math.floor(cols * 0.33));
+    const wA = Math.max(FOREST_CLEARING_MIN_SIZE, Math.floor(cols * FOREST_CLEARING_W_FACTOR_A)), hA = Math.max(FOREST_CLEARING_MIN_SIZE, Math.floor(rows * FOREST_CLEARING_H_FACTOR)), wB = Math.max(FOREST_CLEARING_MIN_SIZE, Math.floor(cols * FOREST_CLEARING_W_FACTOR_B));
     clearings = [
       { id: "clearing_1", name: "Northwest Clearing", x: 1, y: 1, width: wA, height: hA, type: "clearing" },
       { id: "clearing_2", name: "Northeast Clearing", x: Math.max(1, cols - wA - 1), y: 1, width: wA, height: hA, type: "clearing" },
@@ -75,7 +91,7 @@ export function getForestLayout(cols: number, rows: number): { tilemap: TileKind
     for (const [x, y] of fixed) { if (isInPlot(x, y, clearings)) continue; if (y > 0 && y < rows - 1 && x > 0 && x < cols - 1) tilemap[y][x] = "tree"; }
   } else {
     for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
-      if (isInPlot(x, y, clearings)) continue; const v = (x * 37 + y * 71 + (x * y) % 19) % 100; if (v < 13) tilemap[y][x] = "tree";
+      if (isInPlot(x, y, clearings)) continue; const v = (x * FOREST_HASH_A + y * FOREST_HASH_B + (x * y) % FOREST_HASH_MOD) % FOREST_HASH_RANGE; if (v < FOREST_TREE_DENSITY_THRESHOLD) tilemap[y][x] = "tree";
     }
   }
   for (const c of clearings) for (let dy = 0; dy < c.height; dy++) for (let dx = 0; dx < c.width; dx++) {
@@ -87,7 +103,7 @@ function getFallbackLayout(cols: number, rows: number): { tilemap: TileKind[][];
   return { tilemap: createGrassMap(cols, rows), plots: [] };
 }
 export function getLayout(template: TemplateType, size: { cols: number; rows: number }): WorldLayout | null {
-  const { cols, rows } = size; if (cols < 8 || cols > 30 || rows < 8 || rows > 20) return null;
+  const { cols, rows } = size; if (cols < WORLD_COLS_MIN || cols > WORLD_COLS_MAX || rows < WORLD_ROWS_MIN || rows > WORLD_ROWS_MAX) return null;
   let tilemap: TileKind[][]; let plots: Plot[];
   if (template === "town") { const r = getTownLayout(cols, rows); tilemap = r.tilemap; plots = r.plots; }
   else if (template === "forest") { const r = getForestLayout(cols, rows); tilemap = r.tilemap; plots = r.plots; }

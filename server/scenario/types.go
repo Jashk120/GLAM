@@ -64,14 +64,14 @@ type MCQOption struct {
 }
 
 type InteractionMCQ struct {
-	Type      string      `json:"type"`
-	Question  string      `json:"question"`
-	Options   []MCQOption `json:"options"`
-	AllowRetry *bool      `json:"allowRetry,omitempty"`
-	Cooldown  *int        `json:"cooldown,omitempty"`
-	Auto      *bool       `json:"auto,omitempty"`
-	OnCorrect *Outcome    `json:"onCorrect,omitempty"`
-	OnWrong   *Outcome    `json:"onWrong,omitempty"`
+	Type       string      `json:"type"`
+	Question   string      `json:"question"`
+	Options    []MCQOption `json:"options"`
+	AllowRetry *bool       `json:"allowRetry,omitempty"`
+	Cooldown   *int        `json:"cooldown,omitempty"`
+	Auto       *bool       `json:"auto,omitempty"`
+	OnCorrect  *Outcome    `json:"onCorrect,omitempty"`
+	OnWrong    *Outcome    `json:"onWrong,omitempty"`
 }
 
 type InteractionMath struct {
@@ -95,7 +95,8 @@ type ShopItem struct {
 }
 
 type InteractionShop struct {
-	Type      string     `json:"type"`
+	Type string `json:"type"`
+	// Currency is free-form (e.g. "coins", "gems", "barter") — bartering allowed, not enum-restricted.
 	Currency  *string    `json:"currency,omitempty"`
 	Items     []ShopItem `json:"items"`
 	Cooldown  *int       `json:"cooldown,omitempty"`
@@ -117,7 +118,7 @@ type InteractionInformation struct {
 
 // Interaction is a discriminated union of 5 variants.
 type Interaction struct {
-	Type string
+	Type        string
 	Dialogue    *InteractionDialogue
 	MCQ         *InteractionMCQ
 	Math        *InteractionMath
@@ -228,22 +229,36 @@ type MissionTrigger struct {
 	Auto          *bool   `json:"auto,omitempty"`
 }
 
+type RequiredStat struct {
+	Stat     string  `json:"stat"`
+	Operator string  `json:"operator"`
+	Target   float64 `json:"target"`
+}
+
+type InitialStats struct {
+	Coins *int `json:"coins,omitempty"`
+	Lives *int `json:"lives,omitempty"`
+	Score *int `json:"score,omitempty"`
+}
+
 type Mission struct {
-	ID          string          `json:"id"`
-	Title       string          `json:"title"`
-	Description string          `json:"description"`
-	Trigger     *MissionTrigger `json:"trigger,omitempty"`
-	CheckAtEnd  *bool           `json:"checkAtEnd,omitempty"`
-	Done        *bool           `json:"done,omitempty"`
+	ID           string          `json:"id"`
+	Title        string          `json:"title"`
+	Description  string          `json:"description"`
+	Trigger      *MissionTrigger `json:"trigger,omitempty"`
+	CheckAtEnd   *bool           `json:"checkAtEnd,omitempty"`
+	RequiredStat *RequiredStat   `json:"requiredStat,omitempty"`
+	Done         *bool           `json:"done,omitempty"`
 }
 
 type Scenario struct {
-	ID         string         `json:"id"`
-	Title      string         `json:"title"`
-	Version    *string        `json:"version,omitempty"`
-	World      World          `json:"world"`
-	Characters []Character    `json:"characters"`
-	Buildings  []Building     `json:"buildings"`
-	Objects    []ObjectEntity `json:"objects"`
-	Missions   []Mission      `json:"missions"`
+	ID           string         `json:"id"`
+	Title        string         `json:"title"`
+	Version      *string        `json:"version,omitempty"`
+	World        World          `json:"world"`
+	InitialStats *InitialStats  `json:"initialStats,omitempty"`
+	Characters   []Character    `json:"characters"`
+	Buildings    []Building     `json:"buildings"`
+	Objects      []ObjectEntity `json:"objects"`
+	Missions     []Mission      `json:"missions"`
 }

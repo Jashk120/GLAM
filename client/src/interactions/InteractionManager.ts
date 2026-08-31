@@ -91,7 +91,25 @@ export class InteractionManager {
 
   private findNearby(): EntityRef | undefined {
     const p = this.deps.getPlayerPos();
-    return this.entities.find((e) => manhattan(e.position, p) <= 1);
+    let best: EntityRef | undefined;
+    let bestDist = Infinity;
+    for (const e of this.entities) {
+      if (!e.interaction) continue;
+      let d = Infinity;
+      for (let dx = 0; dx < e.width; dx++) {
+        for (let dy = 0; dy < e.height; dy++) {
+          const tx = e.position.x + dx;
+          const ty = e.position.y + dy;
+          const cur = Math.abs(tx - p.x) + Math.abs(ty - p.y);
+          if (cur < d) d = cur;
+        }
+      }
+      if (d <= 1 && d < bestDist) {
+        bestDist = d;
+        best = e;
+      }
+    }
+    return best;
   }
 
   private isOnCooldown(entityId: string): boolean {
@@ -109,16 +127,6 @@ export class InteractionManager {
       this.deps.updateStat(outcome.stat, outcome.delta);
     }
     if (outcome.toast) this.deps.toast(outcome.toast);
-  }
-
-  private onInteractionComplete(entity: EntityRef, success: boolean): void {
-    // cooldown
-    const cd = entity.interaction?.cooldown ?? 0;
-    this.setCooldown(entity.id, cd);
-    // mission linkage
-    this.deps.onMissionTrigger(entity.id, entity.interaction);
-    // Apply onCorrect/onWrong when provided by MCQ/math handlers separately; for dialogue/info/shop also handle
-    void success;
   }
 
   open(entity: EntityRef): void {
@@ -236,6 +244,4 @@ export class InteractionManager {
   }
 }
 
-function manhattan(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-}
+

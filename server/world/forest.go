@@ -1,3 +1,4 @@
+// NOTE: Mirrored in client/src/world/layouts.ts — keep in sync. Registry CI will fail if diff changes. Canonical layout: server/world/forest.go & client/src/world/layouts.ts
 package world
 
 func GetForestLayout(cols, rows int) Layout {
@@ -21,16 +22,16 @@ func GetForestLayout(cols, rows int) Layout {
 			{ID: "clearing_4", Name: "Southeast Clearing", X: 9, Y: 8, W: 4, H: 3, Type: "clearing"},
 		}
 	} else {
-		wA, hA := cols*27/100, rows*25/100
-		if wA < 2 {
-			wA = 2
+		wA, hA := cols*ForestClearingWFactorA/100, rows*ForestClearingHFactor/100
+		if wA < ForestClearingMinSize {
+			wA = ForestClearingMinSize
 		}
-		if hA < 2 {
-			hA = 2
+		if hA < ForestClearingMinSize {
+			hA = ForestClearingMinSize
 		}
-		wB := cols * 33 / 100
-		if wB < 2 {
-			wB = 2
+		wB := cols * ForestClearingWFactorB / 100
+		if wB < ForestClearingMinSize {
+			wB = ForestClearingMinSize
 		}
 		c2x, c3y, c4x, c4y := cols-wA-1, rows-hA-1, cols-wA-1, rows-hA
 		if c2x < 1 {
@@ -100,8 +101,8 @@ func GetForestLayout(cols, rows int) Layout {
 				if IsInPlot(x, y, cl) {
 					continue
 				}
-				v := (x*37 + y*71 + (x*y)%19) % 100
-				if v < 13 {
+				v := (x*ForestHashA + y*ForestHashB + (x*y)%ForestHashMod) % ForestHashRange
+				if v < ForestTreeDensityThreshold {
 					tm[y][x] = Tree
 				}
 			}

@@ -10,6 +10,12 @@ This directory locks the contract between three parties:
 
 `client/src/assets/registry.json` and `schema/asset-registry.json` are **identical copies**. The former is bundled for the browser; the latter is read by the Go server. Keep them in sync (CI can `diff` them).
 
+**Sync check:** `make registry-check` or `npm run registry:check` (from `client/`) diffs the two files; CI workflow `.github/workflows/registry-sync.yml` fails on drift. `make registry-sync` copies canonical `schema/asset-registry.json` to `client/src/assets/registry.json`.
+
+**World bounds canonical source:** `schema/scenario.schema.json` — `WorldColsMin/Max`, `WorldRowsMin/Max`, `WorldPosMin/Max` are centralized in `client/src/world/worldConstants.ts` and `server/world/constants.go` (both comment `canonical: schema/scenario.schema.json`). Do not repeat magic numbers 8,30,20,0-30.
+
+**Forest layout mirrored:** `server/world/forest.go` and `client/src/world/layouts.ts` share identical geometry plus named constants `FOREST_*` / `Forest*`. Header comment `NOTE: Mirrored in …` marks the pair; keep density 13%, factors 0.27/0.25/0.33 and hash 37/71/19/100 in sync.
+
 ---
 
 ## Files

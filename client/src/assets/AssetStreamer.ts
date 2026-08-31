@@ -1,7 +1,9 @@
 import type { Scenario } from "../types/scenario";
 import { hasAsset, allAssets } from "./assetRegistry";
+import { STORAGE_KEYS } from "./storageKeys";
+import { ASSET_FETCH_DELAY_MS } from "../engine/timingConstants";
 
-const CACHE_KEY = "glam_asset_cache_v1";
+const CACHE_KEY = STORAGE_KEYS.assetCache;
 
 type CacheMap = Record<string, number>;
 
@@ -95,7 +97,7 @@ export class AssetStreamer {
           window.setTimeout(() => {
             this.cache.set(id, Date.now());
             resolve();
-          }, 50);
+          }, ASSET_FETCH_DELAY_MS);
         }),
     );
     await Promise.all(promises);

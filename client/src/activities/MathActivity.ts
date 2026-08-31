@@ -15,7 +15,7 @@ export function showMath(
     <input id="mathInput" type="text" placeholder="Your answer" autocomplete="off" />
     <button class="modalBtn" id="math-submit">Submit</button>
     <button class="modalBtn" id="math-cancel">Cancel</button>
-    <div id="math-feedback" style="font-size:12px;margin-top:6px;min-height:16px;color:#ffb74d"></div>
+    <div id="math-feedback" class="math-feedback"></div>
   `;
   overlayEl.classList.add("active");
   const input = modalEl.querySelector("#mathInput") as HTMLInputElement;
@@ -59,5 +59,5 @@ function isAnswerCorrect(input: string, answer: number | string, tolerance: numb
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;").replace(/`/g, "&#96;");
 }

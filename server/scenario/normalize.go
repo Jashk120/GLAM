@@ -43,37 +43,15 @@ func NormalizePlotRefs(data []byte) ([]byte, bool, error) {
 
 	fixed := false
 
-	// Helper: find plot containing position
+	// Helpers delegated to bounds.go (pure, reusable without full scenario).
 	findContaining := func(pos Position) *world.Plot {
-		for _, p := range layout.Plots {
-			if pos.X >= p.X && pos.X < p.X+p.W && pos.Y >= p.Y && pos.Y < p.Y+p.H {
-				return &p
-			}
-		}
-		return nil
+		return FindContainingPlot(pos, layout.Plots)
 	}
-
-	// Helper: center of plot (floor)
 	centerOf := func(p world.Plot) Position {
-		return Position{X: p.X + p.W/2, Y: p.Y + p.H/2}
+		return PlotCenter(p)
 	}
-
-	// Helper: nearest plot by Manhattan distance to center
 	nearestPlot := func(pos Position) *world.Plot {
-		if len(layout.Plots) == 0 {
-			return nil
-		}
-		bestIdx := 0
-		bestDist := int(^uint(0) >> 1)
-		for i, p := range layout.Plots {
-			c := centerOf(p)
-			d := abs(pos.X-c.X) + abs(pos.Y-c.Y)
-			if d < bestDist {
-				bestDist = d
-				bestIdx = i
-			}
-		}
-		return &layout.Plots[bestIdx]
+		return NearestPlot(pos, layout.Plots)
 	}
 
 	// desert/school have no plots — strip any plot field
@@ -141,7 +119,7 @@ func NormalizePlotRefs(data []byte) ([]byte, bool, error) {
 			return
 		}
 		// Valid ID but check if position inside claimed
-		if !(pos.X >= claimed.X && pos.X < claimed.X+claimed.W && pos.Y >= claimed.Y && pos.Y < claimed.Y+claimed.H) {
+		if !PositionInPlot(*pos, claimed) {
 			if containing := findContaining(*pos); containing != nil {
 				// Prefer the actual containing plot over claimed
 				**plot = containing.ID
@@ -203,9 +181,32 @@ func NormalizePlotRefs(data []byte) ([]byte, bool, error) {
 	return out, true, nil
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
+// SanitizeExtraFields strips hallucinated extra properties that violate
+// additionalProperties:false (e.g. initialStats.wisdom, missions[].reward/goal).
+// It does a typed round-trip via Scenario struct which only keeps schema-allowed
+// keys, then returns the cleaned JSON if anything was stripped.
+func SanitizeExtraFields(data []byte) ([]byte, bool, error) {
+	var sc Scenario
+	if err := json.Unmarshal(data, &sc); err != nil {
+		return data, false, nil // let validator report JSON error
 	}
-	return x
+	cleaned, err := json.Marshal(sc)
+	if err != nil {
+		return data, false, err
+	}
+	// Compare canonical forms to detect if stripping occurred.
+	var origNorm interface{}
+	var cleanNorm interface{}
+	if err := json.Unmarshal(data, &origNorm); err != nil {
+		return data, false, nil
+	}
+	if err := json.Unmarshal(cleaned, &cleanNorm); err != nil {
+		return data, false, err
+	}
+	origBytes, _ := json.Marshal(origNorm)
+	cleanBytes, _ := json.Marshal(cleanNorm)
+	if string(origBytes) == string(cleanBytes) {
+		return data, false, nil
+	}
+	return cleaned, true, nil
 }
