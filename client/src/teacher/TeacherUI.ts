@@ -1,6 +1,9 @@
 import { validateScenarioSync } from "../engine/ScenarioLoader";
 import { assetStreamer } from "../assets/AssetStreamer";
 import type { Scenario } from "../types/scenario";
+import { STORAGE_KEYS } from "../assets/storageKeys";
+import { STATUS_CLEAR_DELAY_MS } from "../engine/timingConstants";
+import { API_CONFIG, serverOriginFromConfig } from "../config/env";
 
 type GenerateSuccess = (scenario: Scenario) => Promise<void> | void;
 type ToastFn = (msg: string, ok?: boolean) => void;
@@ -17,8 +20,8 @@ interface TeacherUIOptions {
   getCurrentScenario: () => Scenario | null;
 }
 
-const STORAGE_KEY = "glam_lastGenerated";
-const GENERATE_URL = "/api/scenario/generate";
+const STORAGE_KEY = STORAGE_KEYS.lastGenerated;
+const GENERATE_URL = API_CONFIG.generateUrl;
 
 function formatDetails(details: unknown): string {
   if (Array.isArray(details)) return details.map((d) => `• ${String(d)}`).join("\n");
@@ -211,14 +214,14 @@ export class TeacherUI {
       window.setTimeout(() => {
         this.opts.genStatus.textContent = "";
         this.opts.genStatus.classList.remove("visible");
-      }, 3000);
+      }, STATUS_CLEAR_DELAY_MS);
       this.opts.toast("Generated! 🎉", true);
       console.log("[TeacherUI] Play Generated:", validated.id, validated.title);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.setLoading(false);
       if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
-        this.showError("Network error — is the Go server running on :8080?");
+        this.showError(`Network error — is the Go server running on ${serverOriginFromConfig()}?`);
       } else {
         this.showError("Network or server error:", msg);
       }

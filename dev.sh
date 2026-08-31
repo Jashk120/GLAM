@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 set -e
+# Centralized ports/hosts — env-driven with defaults (mirrors client/src/config/env.ts + client/vite.config.ts + server/main.go PORT)
+# Override via env: PORT (Go server, default 8080) and VITE_PORT (Vite client, default 5173)
+# VITE_API_BASE_URL can override proxy target (default http://localhost:$PORT)
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 SERVER_PORT="${PORT:-8080}"
 CLIENT_PORT="${VITE_PORT:-5173}"

@@ -152,7 +152,7 @@ func GetTownLayout(cols, rows int) Layout {
 	return Layout{Tilemap: tm, Plots: plots}
 }
 func GetLayout(template string, cols, rows int) *Layout {
-	if cols < 8 || cols > 30 || rows < 8 || rows > 20 {
+	if cols < WorldColsMin || cols > WorldColsMax || rows < WorldRowsMin || rows > WorldRowsMax {
 		return nil
 	}
 	var tm [][]TileKind

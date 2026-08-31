@@ -150,12 +150,27 @@ export interface MissionTrigger {
   auto?: boolean;
 }
 
+export type StatOperator = ">=" | ">" | "<=" | "<" | "=" | "==" | "!=";
+
+export interface RequiredStat {
+  stat: string;
+  operator: StatOperator;
+  target: number;
+}
+
+export interface InitialStats {
+  coins?: number;
+  lives?: number;
+  score?: number;
+}
+
 export interface Mission {
   id: string;
   title: string;
   description: string;
   trigger?: MissionTrigger;
   checkAtEnd?: boolean;
+  requiredStat?: RequiredStat;
   done?: boolean;
 }
 
@@ -164,6 +179,7 @@ export interface Scenario {
   title: string;
   version?: string;
   world: World;
+  initialStats?: InitialStats;
   characters: Character[];
   buildings: Building[];
   objects: ObjectEntity[];

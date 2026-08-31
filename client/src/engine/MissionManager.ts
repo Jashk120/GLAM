@@ -1,4 +1,26 @@
-import type { Mission } from "../types/scenario";
+import type { Mission, RequiredStat } from "../types/scenario";
+
+function evaluateRequiredStat(cond: RequiredStat, stats: Record<string, number>): boolean {
+  const value = stats[cond.stat] ?? 0;
+  const target = cond.target;
+  switch (cond.operator) {
+    case ">=":
+      return value >= target;
+    case ">":
+      return value > target;
+    case "<=":
+      return value <= target;
+    case "<":
+      return value < target;
+    case "=":
+    case "==":
+      return value === target;
+    case "!=":
+      return value !== target;
+    default:
+      return false;
+  }
+}
 
 export class MissionManager {
   private missions: Mission[];
@@ -53,10 +75,7 @@ export class MissionManager {
   completeByEntity(entityId: string): void {
     for (const m of this.missions) {
       if (!m.done && m.trigger?.entityId === entityId) {
-        // checkAtEnd missions require extra validation — handled in checkAllDone or explicit call
         if (m.checkAtEnd) {
-          // For save_coins type: coins >=10 check will be done in checkAllDone; allow manual completion if stats pass
-          // We complete non-checkAtEnd immediately, checkAtEnd via checkEndMissions
           continue;
         }
         m.done = true;
@@ -71,9 +90,8 @@ export class MissionManager {
     for (const m of this.missions) {
       if (m.done) continue;
       if (m.checkAtEnd) {
-        // Generic: if mission id save_coins, require coins >=10 else consider done when called
-        if (m.id === "save_coins") {
-          if ((stats["coins"] ?? 0) >= 10) m.done = true;
+        if (m.requiredStat) {
+          if (evaluateRequiredStat(m.requiredStat, stats)) m.done = true;
         } else {
           m.done = true;
         }

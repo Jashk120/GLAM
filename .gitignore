@@ -16,3 +16,4 @@ scenario-engine-demo.html
 # air + go build
 tmp/
 .omo/
+server/scenarios/generated_*.json

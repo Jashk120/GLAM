@@ -5,6 +5,9 @@ import { loadScenario } from "./engine/ScenarioLoader";
 import { TeacherUI } from "./teacher/TeacherUI";
 import { assetStreamer } from "./assets/AssetStreamer";
 import type { Scenario } from "./types/scenario";
+import { STORAGE_KEYS } from "./assets/storageKeys";
+import { TOAST_DURATION_MS, TOAST_COLORS } from "./engine/timingConstants";
+import { TILE } from "./world/renderConstants";
 
 const statsBar = document.getElementById("statsBar") as HTMLElement;
 const missionList = document.getElementById("missionList") as HTMLElement;
@@ -25,13 +28,13 @@ const generatedStore = new Map<string, Scenario>();
 
 function showToast(msg: string, ok = true): void {
   toastEl.textContent = msg;
-  toastEl.style.background = ok ? "#2e7d32" : "#c62828";
+  toastEl.style.background = ok ? TOAST_COLORS.success : TOAST_COLORS.error;
   toastEl.style.display = "block";
   const existing = (toastEl as unknown as { _timer?: number })._timer;
   if (existing) window.clearTimeout(existing);
   (toastEl as unknown as { _timer: number })._timer = window.setTimeout(() => {
     toastEl.style.display = "none";
-  }, 2600);
+  }, TOAST_DURATION_MS);
 }
 
 const scene = new GameScene({
@@ -48,8 +51,8 @@ const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: "game",
   backgroundColor: "#181828",
-  width: 15 * 32,
-  height: 12 * 32,
+  width: 15 * TILE,
+  height: 12 * TILE,
   scene: [scene],
   scale: {
     mode: Phaser.Scale.NONE,
@@ -74,7 +77,7 @@ async function bootScenario(source: string | object): Promise<void> {
     const sc = await loadScenario(source);
     currentScenario = sc;
     if (!gameScene) return;
-    const { w, h } = { w: sc.world.size.cols * 32, h: sc.world.size.rows * 32 };
+    const { w, h } = { w: sc.world.size.cols * TILE, h: sc.world.size.rows * TILE };
     game.scale.resize(w, h);
     await gameScene.loadScenarioData(sc);
     titleEl.textContent = sc.title;
@@ -97,7 +100,7 @@ selectEl.addEventListener("change", () => {
     }
     // Fallback: try localStorage
     try {
-      const raw = localStorage.getItem("glam_lastGenerated");
+      const raw = localStorage.getItem(STORAGE_KEYS.lastGenerated);
       if (raw) {
         const parsed = JSON.parse(raw) as Scenario;
         if (`generated:${parsed.id}` === val) {
@@ -186,7 +189,7 @@ assetStatus.textContent = `Assets cached: ${assetStreamer.cachedCount()}/${asset
 
 // Restore generated from localStorage into store + selector on startup
 try {
-  const raw = localStorage.getItem("glam_lastGenerated");
+  const raw = localStorage.getItem(STORAGE_KEYS.lastGenerated);
   if (raw) {
     const parsed = JSON.parse(raw) as Scenario;
     if (parsed?.id) generatedStore.set(`generated:${parsed.id}`, parsed);

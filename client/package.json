@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "registry:check": "diff -u ../schema/asset-registry.json src/assets/registry.json && echo 'registry sync OK' || (echo 'registry mismatch: schema/asset-registry.json vs client/src/assets/registry.json' && exit 1)",
+    "registry:sync": "cp ../schema/asset-registry.json src/assets/registry.json && echo 'registry synced from schema/asset-registry.json'"
   },
   "dependencies": {
     "phaser": "^3.80.0"

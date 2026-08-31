@@ -10,15 +10,6 @@ import (
 	"glam/server/world"
 )
 
-// ValidActivityTypes is the allowed interaction types.
-var ValidActivityTypes = map[string]bool{
-	"dialogue":    true,
-	"mcq":         true,
-	"math":        true,
-	"shop":        true,
-	"information": true,
-}
-
 var forbiddenFields = []string{"code", "script", "component", "bundle"}
 
 // ValidateScenario validates data in order:
@@ -140,14 +131,14 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 	for _, b := range sc.Buildings {
 		checkPosition(fmt.Sprintf("building %q", b.ID), b.Position)
 		if b.Width != nil {
-			if *b.Width < 1 || *b.Width > 30 {
+			if *b.Width < 1 || *b.Width > world.WorldColsMax {
 				errs = append(errs, fmt.Sprintf("building %q: width %d out of range", b.ID, *b.Width))
 			} else if b.Position.X+*b.Width > cols {
 				errs = append(errs, fmt.Sprintf("building %q: position x+width %d exceeds world cols %d", b.ID, b.Position.X+*b.Width, cols))
 			}
 		}
 		if b.Height != nil {
-			if *b.Height < 1 || *b.Height > 20 {
+			if *b.Height < 1 || *b.Height > world.WorldRowsMax {
 				errs = append(errs, fmt.Sprintf("building %q: height %d out of range", b.ID, *b.Height))
 			} else if b.Position.Y+*b.Height > rows {
 				errs = append(errs, fmt.Sprintf("building %q: position y+height %d exceeds world rows %d", b.ID, b.Position.Y+*b.Height, rows))

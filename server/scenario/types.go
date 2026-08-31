@@ -228,22 +228,36 @@ type MissionTrigger struct {
 	Auto          *bool   `json:"auto,omitempty"`
 }
 
+type RequiredStat struct {
+	Stat     string  `json:"stat"`
+	Operator string  `json:"operator"`
+	Target   float64 `json:"target"`
+}
+
+type InitialStats struct {
+	Coins *int `json:"coins,omitempty"`
+	Lives *int `json:"lives,omitempty"`
+	Score *int `json:"score,omitempty"`
+}
+
 type Mission struct {
-	ID          string          `json:"id"`
-	Title       string          `json:"title"`
-	Description string          `json:"description"`
-	Trigger     *MissionTrigger `json:"trigger,omitempty"`
-	CheckAtEnd  *bool           `json:"checkAtEnd,omitempty"`
-	Done        *bool           `json:"done,omitempty"`
+	ID           string          `json:"id"`
+	Title        string          `json:"title"`
+	Description  string          `json:"description"`
+	Trigger      *MissionTrigger `json:"trigger,omitempty"`
+	CheckAtEnd   *bool           `json:"checkAtEnd,omitempty"`
+	RequiredStat *RequiredStat   `json:"requiredStat,omitempty"`
+	Done         *bool           `json:"done,omitempty"`
 }
 
 type Scenario struct {
-	ID         string         `json:"id"`
-	Title      string         `json:"title"`
-	Version    *string        `json:"version,omitempty"`
-	World      World          `json:"world"`
-	Characters []Character    `json:"characters"`
-	Buildings  []Building     `json:"buildings"`
-	Objects    []ObjectEntity `json:"objects"`
-	Missions   []Mission      `json:"missions"`
+	ID           string         `json:"id"`
+	Title        string         `json:"title"`
+	Version      *string        `json:"version,omitempty"`
+	World        World          `json:"world"`
+	InitialStats *InitialStats  `json:"initialStats,omitempty"`
+	Characters   []Character    `json:"characters"`
+	Buildings    []Building     `json:"buildings"`
+	Objects      []ObjectEntity `json:"objects"`
+	Missions     []Mission      `json:"missions"`
 }

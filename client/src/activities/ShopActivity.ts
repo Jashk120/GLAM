@@ -15,7 +15,7 @@ export function showShop(
       <h3>${escapeHtml(title)}</h3>
       <p>Coins: <strong>${coins} 💰</strong></p>
       <div id="shop-list"></div>
-      <button class="modalBtn" id="shop-leave" style="margin-top:8px;">Leave</button>
+      <button class="modalBtn shop-leave-btn" id="shop-leave">Leave</button>
     `;
     const list = modalEl.querySelector("#shop-list") as HTMLElement;
     interaction.items.forEach((item, idx) => {
@@ -25,7 +25,7 @@ export function showShop(
       row.innerHTML = `
         <div class="info">
           <span><strong>${escapeHtml(item.icon ?? "📦")} ${escapeHtml(item.name)}</strong> <span class="price">— ${item.price} 💰</span></span>
-          ${item.description ? `<span style="font-size:11px;opacity:0.75">${escapeHtml(item.description)}</span>` : ""}
+           ${item.description ? `<span class="shop-item-desc">${escapeHtml(item.description)}</span>` : ""}
         </div>
       `;
       const btn = document.createElement("button");

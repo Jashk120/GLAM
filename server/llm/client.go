@@ -7,9 +7,52 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
+
+const (
+	defaultTimeout      = 60 * time.Second
+	defaultMaxTokens    = 6000
+	defaultPreviewLimit = 2000
+)
+
+func envTimeout() time.Duration {
+	raw := strings.TrimSpace(os.Getenv("OPENCODE_TIMEOUT"))
+	if raw == "" {
+		return defaultTimeout
+	}
+	if d, err := time.ParseDuration(raw); err == nil {
+		return d
+	}
+	if secs, err := strconv.Atoi(raw); err == nil {
+		return time.Duration(secs) * time.Second
+	}
+	return defaultTimeout
+}
+
+func envMaxTokens() int {
+	raw := strings.TrimSpace(os.Getenv("OPENCODE_MAX_TOKENS"))
+	if raw == "" {
+		return defaultMaxTokens
+	}
+	if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+		return v
+	}
+	return defaultMaxTokens
+}
+
+func envPreviewLimit() int {
+	raw := strings.TrimSpace(os.Getenv("OPENCODE_ERROR_PREVIEW_LIMIT"))
+	if raw == "" {
+		return defaultPreviewLimit
+	}
+	if v, err := strconv.Atoi(raw); err == nil && v > 0 {
+		return v
+	}
+	return defaultPreviewLimit
+}
 
 // OpenCodeClient calls the OpenCode Responses endpoint.
 type OpenCodeClient struct {
@@ -34,7 +77,7 @@ func NewClient() *OpenCodeClient {
 		APIKey:     key,
 		Endpoint:   endpoint,
 		Model:      model,
-		HTTPClient: &http.Client{Timeout: 60 * time.Second},
+		HTTPClient: &http.Client{Timeout: envTimeout()},
 	}
 }
 
@@ -67,7 +110,7 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 		"reasoning": map[string]interface{}{
 			"effort": "minimal",
 		},
-		"max_output_tokens": 6000,
+		"max_output_tokens": envMaxTokens(),
 		"text": map[string]interface{}{
 			"format": map[string]interface{}{
 				"type":   "json_schema",
@@ -103,10 +146,10 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// Truncate body for error message
+		limit := envPreviewLimit()
 		preview := string(respBody)
-		if len(preview) > 2000 {
-			preview = preview[:2000]
+		if len(preview) > limit {
+			preview = preview[:limit]
 		}
 		return "", fmt.Errorf("opencode API error %d: %s", resp.StatusCode, preview)
 	}
@@ -147,7 +190,7 @@ func (c *OpenCodeClient) Generate(prompt string, schemaJSON []byte, registryJSON
 				return candidate, nil
 			}
 		}
-		return "", fmt.Errorf("LLM did not return valid JSON: %v; raw: %s", err, truncate(text, 2000))
+		return "", fmt.Errorf("LLM did not return valid JSON: %v; raw: %s", err, truncate(text, envPreviewLimit()))
 	}
 
 	return text, nil
@@ -163,7 +206,7 @@ func truncate(s string, n int) string {
 func extractText(body []byte) (string, error) {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(body, &raw); err != nil {
-		return "", fmt.Errorf("parse response JSON: %w; body: %s", err, truncate(string(body), 2000))
+		return "", fmt.Errorf("parse response JSON: %w; body: %s", err, truncate(string(body), envPreviewLimit()))
 	}
 
 	if out, ok := raw["output"].([]interface{}); ok && len(out) > 0 {
@@ -239,5 +282,5 @@ func extractText(body []byte) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("unable to extract text from response; body preview: %s", truncate(string(body), 2000))
+	return "", fmt.Errorf("unable to extract text from response; body preview: %s", truncate(string(body), envPreviewLimit()))
 }

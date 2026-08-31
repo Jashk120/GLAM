@@ -5,8 +5,18 @@ import (
 	"fmt"
 	"strings"
 
+	"glam/server/scenario"
 	"glam/server/world"
 )
+
+const (
+	promptSchemaTruncateCap   = 8000
+	promptRegistryTruncateCap = 8000
+)
+
+// promptFactualNote: factual sections (schema, registry IDs, layout) are generated from canonical
+// schema/scenario.schema.json and schema/asset-registry.json and world layout getters;
+// explanatory prose below is manual but values (bounds, types, caps) derive from shared constants.
 
 // BuildSystemPrompt creates the system prompt that enforces GLAM rules.
 // schemaJSON and registryJSON are the raw bytes (truncated if needed).
@@ -22,15 +32,15 @@ func BuildSystemPrompt(schemaJSON []byte, registryJSON []byte) string {
 	}
 
 	idsList := strings.Join(registryIDs, ", ")
+	activityTypesList := strings.Join(scenario.InteractionTypes, ", ")
 
-	// Truncate schema/registry if too large, but include full for correctness (cap prompt size)
 	schemaStr := string(schemaJSON)
-	if len(schemaStr) > 8000 {
-		schemaStr = schemaStr[:8000] + "\n...[truncated]"
+	if len(schemaStr) > promptSchemaTruncateCap {
+		schemaStr = schemaStr[:promptSchemaTruncateCap] + "\n...[truncated]"
 	}
 	registryStr := string(registryJSON)
-	if len(registryStr) > 8000 {
-		registryStr = registryStr[:8000] + "\n...[truncated]"
+	if len(registryStr) > promptRegistryTruncateCap {
+		registryStr = registryStr[:promptRegistryTruncateCap] + "\n...[truncated]"
 	}
 
 	layoutSection := buildLayoutSection()
@@ -45,14 +55,14 @@ RULES (strict, schema-enforced):
   - buildings[].typeAssetId must be one of the building asset IDs.
   - objects[].assetId must be one of the object/prop/tile asset IDs.
   - characters[].appearance.spriteId should be one of the character asset IDs if present.
-- interaction.type MUST be exactly one of: dialogue, mcq, math, shop, information. Use EXACT field names per schema — do NOT invent contentId/dialogueId/outcomes/quizId/shopId/kind/objectives/rewards etc.
+- interaction.type MUST be exactly one of: %s. Use EXACT field names per schema — do NOT invent contentId/dialogueId/outcomes/quizId/shopId/kind/objectives/rewards etc.
   - dialogue: {type:"dialogue", text, speaker?}
   - mcq: {type:"mcq", question, options[{text,correct,explanation?}], allowRetry?}
   - math: {type:"math", question, answer, tolerance?, hint?}
   - shop: {type:"shop", items[{name,price,icon?}], currency?}
   - information: {type:"information", content, title?, image?}
 - Positions must be within world.size bounds: 0 <= x < cols, 0 <= y < rows. Spawn must be inside bounds.
-- world.size: cols 8-30, rows 8-20. world.template must be one of: town, forest, desert, school.
+- world.size: cols %d-%d, rows %d-%d. world.template must be one of: town, forest, desert, school.
 - ids must match pattern ^[a-z0-9][a-z0-9_-]*$ and be unique across characters, buildings, objects, missions.
 - Never include forbidden fields: code, script, component, bundle at any level.
 - missions[].trigger.entityId must refer to an existing entity id if present.
@@ -70,8 +80,8 @@ Asset Registry (valid IDs):
 %s
 
 Valid asset IDs list: [%s]
-Valid activity types: [dialogue, mcq, math, shop, information]
-`, layoutSection, idsList, schemaStr, registryStr, idsList)
+Valid activity types: [%s]
+`, layoutSection, idsList, activityTypesList, world.WorldColsMin, world.WorldColsMax, world.WorldRowsMin, world.WorldRowsMax, schemaStr, registryStr, idsList, activityTypesList)
 }
 
 func buildLayoutSection() string {

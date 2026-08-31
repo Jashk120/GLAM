@@ -33,6 +33,7 @@
       "description": "Semantic version, defaults to 1.0 when omitted."
     },
     "world": { "$ref": "#/$defs/world" },
+    "initialStats": { "$ref": "#/$defs/initialStats" },
     "characters": {
       "type": "array",
       "minItems": 0,
@@ -267,6 +268,45 @@
         "interaction": { "$ref": "#/$defs/interaction" }
       }
     },
+    "initialStats": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": {
+        "not": { "enum": ["code", "script", "component", "bundle"] }
+      },
+      "properties": {
+        "coins": { "type": "integer", "minimum": 0, "maximum": 1000000 },
+        "lives": { "type": "integer", "minimum": 0, "maximum": 99 },
+        "score": { "type": "integer", "minimum": 0, "maximum": 1000000 }
+      },
+      "description": "Optional starting stats; missing keys fallback to engine defaults (coins 40, lives 3, score 0)."
+    },
+    "requiredStat": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": {
+        "not": { "enum": ["code", "script", "component", "bundle"] }
+      },
+      "required": ["stat", "operator", "target"],
+      "properties": {
+        "stat": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32,
+          "pattern": "^[a-z0-9_]+$",
+          "description": "Stat key to evaluate (e.g. coins, score, lives)."
+        },
+        "operator": {
+          "type": "string",
+          "enum": [">=", ">", "<=", "<", "=", "==", "!="],
+          "description": "Comparison operator for stat vs target."
+        },
+        "target": {
+          "type": "number",
+          "description": "Threshold value to compare against."
+        }
+      }
+    },
     "mission": {
       "type": "object",
       "additionalProperties": false,
@@ -284,6 +324,7 @@
         "description": { "type": "string", "minLength": 1, "maxLength": 500 },
         "trigger": { "$ref": "#/$defs/missionTrigger" },
         "checkAtEnd": { "type": "boolean" },
+        "requiredStat": { "$ref": "#/$defs/requiredStat" },
         "done": { "type": "boolean" }
       }
     },
