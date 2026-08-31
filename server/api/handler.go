@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"glam/server/llm"
 	"glam/server/scenario"
 )
+
+const maxBodyBytes = 2 << 20
 
 type Handler struct {
 	SchemaPath   string
@@ -30,11 +33,6 @@ func NewHandler(schemaPath, registryPath string) (*Handler, error) {
 	_, registryJSON, err := scenario.LoadRegistry(registryPath)
 	if err != nil {
 		return nil, fmt.Errorf("load registry: %w", err)
-	}
-	// Also read raw registry JSON for prompt
-	rawReg, _ := os.ReadFile(registryPath)
-	if len(rawReg) > 0 {
-		registryJSON = rawReg
 	}
 
 	return &Handler{
@@ -73,10 +71,15 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	var req struct {
 		Prompt string `json:"prompt"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		if isBodyTooLarge(err) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body too large", []string{fmt.Sprintf("body must be <= %d bytes", maxBodyBytes)})
+			return
+		}
 		writeError(w, http.StatusBadRequest, "invalid JSON body", []string{err.Error()})
 		return
 	}
@@ -188,9 +191,12 @@ func (h *Handler) HandleValidate(w http.ResponseWriter, r *http.Request) {
 
 	var data []byte
 	if r.Method == http.MethodPost {
-		// Accept either raw scenario JSON or { scenario: {...} }
-		body, err := readBody(r)
+		body, err := readBody(w, r)
 		if err != nil {
+			if isBodyTooLarge(err) {
+				writeError(w, http.StatusRequestEntityTooLarge, "request body too large", []string{fmt.Sprintf("body must be <= %d bytes", maxBodyBytes)})
+				return
+			}
 			writeError(w, http.StatusBadRequest, "read body failed", []string{err.Error()})
 			return
 		}
@@ -466,15 +472,9 @@ func HandleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-func readBody(r *http.Request) ([]byte, error) {
+func readBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	defer r.Body.Close()
-	var data json.RawMessage
-	// limit size 2MB
-	r.Body = http.MaxBytesReader(nil, r.Body, 2<<20)
-	buf := new(strings.Builder)
-	// Use io.ReadAll via json decode workaround: read directly
-	// Simpler: decode to raw
-	// We need raw bytes, so read
 	body := make([]byte, 0, 4096)
 	tmp := make([]byte, 4096)
 	for {
@@ -483,15 +483,35 @@ func readBody(r *http.Request) ([]byte, error) {
 			body = append(body, tmp[:n]...)
 		}
 		if err != nil {
+			if err.Error() == "http: request body too large" || strings.Contains(err.Error(), "request body too large") {
+				return nil, fmt.Errorf("request body too large")
+			}
+			if err.Error() != "EOF" && !strings.Contains(err.Error(), "EOF") {
+				if isBodyTooLarge(err) {
+					return nil, fmt.Errorf("request body too large")
+				}
+			}
 			break
 		}
 	}
-	_ = data
-	_ = buf
 	if len(body) == 0 {
 		return nil, fmt.Errorf("empty body")
 	}
 	return body, nil
+}
+
+func isBodyTooLarge(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, http.ErrBodyReadAfterClose) {
+		return true
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "request body too large") {
+		return true
+	}
+	return false
 }
 
 func saveGenerated(obj map[string]interface{}) error {

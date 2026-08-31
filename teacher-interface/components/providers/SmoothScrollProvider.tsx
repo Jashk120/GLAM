@@ -7,6 +7,8 @@ export default function SmoothScrollProvider({ children }: { children: ReactNode
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    // Mount gate for client-only Lenis — suppress cascading render warning (intentional single mount transition)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
   if (!isMounted) {

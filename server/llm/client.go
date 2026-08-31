@@ -2,6 +2,7 @@ package llm
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -75,6 +76,20 @@ type OpenRouterClient struct {
 	HTTPClient *http.Client
 }
 
+// CompletionResult carries both plain text and tool-call outcomes from a
+// tool-calling completion.
+type CompletionResult struct {
+	Content   string
+	ToolCalls []ToolCallReq
+}
+
+// ToolCallReq represents a single function tool call requested by the model.
+type ToolCallReq struct {
+	ID        string          `json:"id"`
+	Name      string          `json:"name"`
+	Arguments json.RawMessage `json:"arguments"`
+}
+
 // OpenCodeClient is an alias for backward-compatibility — existing code
 // in api/handler.go referenced llm.OpenCodeClient.
 type OpenCodeClient = OpenRouterClient
@@ -106,6 +121,166 @@ func NewClient() *OpenRouterClient {
 
 // NewOpenRouterClient is an explicit constructor alias.
 func NewOpenRouterClient() *OpenRouterClient { return NewClient() }
+
+// GenerateWithTools performs a tool-calling chat completion with full message history.
+func (c *OpenRouterClient) GenerateWithTools(ctx context.Context, messages []Message, tools []ToolDef) (*CompletionResult, error) {
+	if c.APIKey == "" {
+		return nil, fmt.Errorf("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
+	}
+	msgPayload := make([]map[string]interface{}, 0, len(messages))
+	for _, m := range messages {
+		entry := map[string]interface{}{
+			"role": m.Role,
+		}
+		if m.Content != "" {
+			entry["content"] = m.Content
+		} else if m.Role == "assistant" && len(m.ToolCalls) > 0 {
+			// assistant tool_call message may have empty content
+			entry["content"] = nil
+		}
+		if m.ToolCallID != "" {
+			entry["tool_call_id"] = m.ToolCallID
+		}
+		if len(m.ToolCalls) > 0 {
+			tcs := make([]map[string]interface{}, 0, len(m.ToolCalls))
+			for _, tc := range m.ToolCalls {
+				argsStr := string(tc.Arguments)
+				if argsStr == "" {
+					argsStr = "{}"
+				}
+				tcs = append(tcs, map[string]interface{}{
+					"id":   tc.ID,
+					"type": "function",
+					"function": map[string]interface{}{
+						"name":      tc.Name,
+						"arguments": argsStr,
+					},
+				})
+			}
+			entry["tool_calls"] = tcs
+		}
+		msgPayload = append(msgPayload, entry)
+	}
+	toolPayload := make([]map[string]interface{}, 0, len(tools))
+	for _, td := range tools {
+		toolPayload = append(toolPayload, td.ToOpenAIFunction())
+	}
+	reqBody := map[string]interface{}{
+		"model":       c.Model,
+		"messages":    msgPayload,
+		"max_tokens":  envMaxTokens(),
+		"temperature": 0.7,
+	}
+	if len(toolPayload) > 0 {
+		reqBody["tools"] = toolPayload
+		reqBody["tool_choice"] = "auto"
+	}
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Endpoint, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.APIKey)
+	req.Header.Set("HTTP-Referer", envOr("OPENROUTER_REFERER", "GLAM_APP_REFERER"))
+	if title := envOr("OPENROUTER_TITLE", "GLAM_APP_TITLE"); title != "" {
+		req.Header.Set("X-Title", title)
+	} else {
+		req.Header.Set("X-Title", "GLAM")
+	}
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("openrouter request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		limit := envPreviewLimit()
+		preview := string(respBody)
+		if len(preview) > limit {
+			preview = preview[:limit]
+		}
+		return nil, fmt.Errorf("openrouter API error %d: %s", resp.StatusCode, preview)
+	}
+	toolCalls, err := extractToolCalls(respBody)
+	if err != nil {
+		return nil, err
+	}
+	content, _ := extractText(respBody)
+	if len(toolCalls) > 0 {
+		return &CompletionResult{Content: content, ToolCalls: toolCalls}, nil
+	}
+	if content != "" {
+		content = strings.TrimSpace(content)
+		if strings.HasPrefix(content, "```") {
+			lines := strings.Split(content, "\n")
+			if len(lines) > 0 && strings.HasPrefix(strings.TrimSpace(lines[0]), "```") {
+				lines = lines[1:]
+			}
+			if len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "```" {
+				lines = lines[:len(lines)-1]
+			}
+			content = strings.TrimSpace(strings.Join(lines, "\n"))
+			content = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(content), "json"))
+		}
+	}
+	return &CompletionResult{Content: content, ToolCalls: nil}, nil
+}
+
+func extractToolCalls(body []byte) ([]ToolCallReq, error) {
+	var raw map[string]interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		return nil, fmt.Errorf("parse response JSON: %w; body: %s", err, truncate(string(body), envPreviewLimit()))
+	}
+	choices, ok := raw["choices"].([]interface{})
+	if !ok || len(choices) == 0 {
+		return nil, nil
+	}
+	cm, ok := choices[0].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+	msg, ok := cm["message"].(map[string]interface{})
+	if !ok {
+		return nil, nil
+	}
+	tcs, ok := msg["tool_calls"].([]interface{})
+	if !ok || len(tcs) == 0 {
+		return nil, nil
+	}
+	var out []ToolCallReq
+	for _, tcRaw := range tcs {
+		tcMap, ok := tcRaw.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		id, _ := tcMap["id"].(string)
+		fn, _ := tcMap["function"].(map[string]interface{})
+		if fn == nil {
+			continue
+		}
+		name, _ := fn["name"].(string)
+		argsStr, _ := fn["arguments"].(string)
+		if argsStr == "" {
+			argsStr = "{}"
+		}
+		var rawArgs json.RawMessage = json.RawMessage(argsStr)
+		if !json.Valid([]byte(argsStr)) {
+			rawArgs = json.RawMessage("{}")
+		}
+		if name == "" {
+			continue
+		}
+		out = append(out, ToolCallReq{ID: id, Name: name, Arguments: rawArgs})
+	}
+	return out, nil
+}
 
 // Generate calls the OpenRouter Chat Completions API and returns raw JSON string.
 func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJSON []byte) (string, error) {

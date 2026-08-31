@@ -61,6 +61,7 @@ export default function ScenarioGenerator() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchScenarios();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

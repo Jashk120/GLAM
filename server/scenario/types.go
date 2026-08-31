@@ -64,14 +64,14 @@ type MCQOption struct {
 }
 
 type InteractionMCQ struct {
-	Type      string      `json:"type"`
-	Question  string      `json:"question"`
-	Options   []MCQOption `json:"options"`
-	AllowRetry *bool      `json:"allowRetry,omitempty"`
-	Cooldown  *int        `json:"cooldown,omitempty"`
-	Auto      *bool       `json:"auto,omitempty"`
-	OnCorrect *Outcome    `json:"onCorrect,omitempty"`
-	OnWrong   *Outcome    `json:"onWrong,omitempty"`
+	Type       string      `json:"type"`
+	Question   string      `json:"question"`
+	Options    []MCQOption `json:"options"`
+	AllowRetry *bool       `json:"allowRetry,omitempty"`
+	Cooldown   *int        `json:"cooldown,omitempty"`
+	Auto       *bool       `json:"auto,omitempty"`
+	OnCorrect  *Outcome    `json:"onCorrect,omitempty"`
+	OnWrong    *Outcome    `json:"onWrong,omitempty"`
 }
 
 type InteractionMath struct {
@@ -117,7 +117,7 @@ type InteractionInformation struct {
 
 // Interaction is a discriminated union of 5 variants.
 type Interaction struct {
-	Type string
+	Type        string
 	Dialogue    *InteractionDialogue
 	MCQ         *InteractionMCQ
 	Math        *InteractionMath

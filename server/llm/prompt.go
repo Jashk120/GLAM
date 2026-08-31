@@ -90,6 +90,10 @@ Valid activity types: [%s]
 `, layoutSection, idsList, activityTypesList, world.WorldColsMin, world.WorldColsMax, world.WorldRowsMin, world.WorldRowsMax, schemaStr, registryStr, idsList, activityTypesList)
 }
 
+func BuildLayoutSection() string {
+	return buildLayoutSection()
+}
+
 func buildLayoutSection() string {
 	town := world.GetLayout("town", 15, 12)
 	forest := world.GetLayout("forest", 15, 12)

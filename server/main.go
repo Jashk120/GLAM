@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"glam/server/api"
+	"glam/server/session"
 )
 
 // allowedOrigins holds the CORS allowlist parsed once at startup.
@@ -128,11 +129,15 @@ func main() {
 		log.Fatalf("failed to init handler: %v", err)
 	}
 
+	store := session.NewStore()
+	chatHandler := api.NewChatHandler(h, store)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", api.HandleHealth)
 	mux.HandleFunc("/api/assets", h.HandleAssets)
 	mux.HandleFunc("/api/scenario/validate", h.HandleValidate)
 	mux.HandleFunc("/api/scenario/generate", h.HandleGenerate)
+	mux.HandleFunc("/api/chat", chatHandler.HandleChat)
 	mux.HandleFunc("/api/scenarios", h.HandleListScenarios)
 	mux.HandleFunc("/api/scenarios/", h.HandleGetScenario)
 	mux.HandleFunc("/api/scenario/", h.HandleGetScenario)

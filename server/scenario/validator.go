@@ -3,12 +3,97 @@ package scenario
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 
 	"glam/server/world"
 )
+
+var (
+	schemaCacheMu sync.RWMutex
+	schemaCache   = map[string]*jsonschema.Schema{}
+	// interactionSchemaCache caches the wrapped interaction subschema (#/$defs/interaction).
+	interactionSchemaCacheMu sync.RWMutex
+	interactionSchemaCache   = map[string]*jsonschema.Schema{}
+)
+
+func getCompiledSchema(schemaPath string) (*jsonschema.Schema, error) {
+	absPath := schemaPath
+	if abs, err := filepath.Abs(schemaPath); err == nil {
+		absPath = abs
+	}
+	schemaCacheMu.RLock()
+	if sch, ok := schemaCache[absPath]; ok {
+		schemaCacheMu.RUnlock()
+		return sch, nil
+	}
+	schemaCacheMu.RUnlock()
+
+	compiler := jsonschema.NewCompiler()
+	compiler.Draft = jsonschema.Draft2020
+	sch, err := compiler.Compile(schemaPath)
+	if err != nil {
+		return nil, err
+	}
+	schemaCacheMu.Lock()
+	schemaCache[absPath] = sch
+	schemaCacheMu.Unlock()
+	return sch, nil
+}
+
+func getCompiledInteractionSchema(schemaPath string) (*jsonschema.Schema, error) {
+	absPath := schemaPath
+	if abs, err := filepath.Abs(schemaPath); err == nil {
+		absPath = abs
+	}
+	interactionSchemaCacheMu.RLock()
+	if sch, ok := interactionSchemaCache[absPath]; ok {
+		interactionSchemaCacheMu.RUnlock()
+		return sch, nil
+	}
+	interactionSchemaCacheMu.RUnlock()
+
+	schemaData, err := os.ReadFile(schemaPath)
+	if err != nil {
+		return nil, fmt.Errorf("read schema: %w", err)
+	}
+	var schemaMap map[string]interface{}
+	if err := json.Unmarshal(schemaData, &schemaMap); err != nil {
+		return nil, fmt.Errorf("parse schema: %w", err)
+	}
+	defs, ok := schemaMap["$defs"]
+	if !ok {
+		return nil, fmt.Errorf("schema missing $defs")
+	}
+	wrapper := map[string]interface{}{
+		"$schema": "https://json-schema.org/draft/2020-12/schema",
+		"$defs":   defs,
+		"$ref":    "#/$defs/interaction",
+	}
+	wrapperBytes, err := json.Marshal(wrapper)
+	if err != nil {
+		return nil, fmt.Errorf("marshal wrapper: %w", err)
+	}
+	compiler := jsonschema.NewCompiler()
+	compiler.Draft = jsonschema.Draft2020
+	const wrapperURL = "https://glam.example.com/interaction_wrapper.json"
+	if err := compiler.AddResource(wrapperURL, strings.NewReader(string(wrapperBytes))); err != nil {
+		return nil, fmt.Errorf("add wrapper resource: %w", err)
+	}
+	sch, err := compiler.Compile(wrapperURL)
+	if err != nil {
+		return nil, fmt.Errorf("compile interaction subschema: %w", err)
+	}
+	interactionSchemaCacheMu.Lock()
+	interactionSchemaCache[absPath] = sch
+	interactionSchemaCacheMu.Unlock()
+	return sch, nil
+}
 
 var forbiddenFields = []string{"code", "script", "component", "bundle"}
 
@@ -31,10 +116,8 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 	// We'll collect forbidden field errors separately.
 	forbiddenErrs := checkForbiddenFields(genericMap, "")
 
-	// Step 2: JSON Schema validation
-	compiler := jsonschema.NewCompiler()
-	compiler.Draft = jsonschema.Draft2020
-	schema, err := compiler.Compile(schemaPath)
+	// Step 2: JSON Schema validation (cached to avoid per-request recompile)
+	schema, err := getCompiledSchema(schemaPath)
 	if err != nil {
 		return false, nil, fmt.Errorf("compile schema: %w", err)
 	}
@@ -93,6 +176,11 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 	for _, o := range sc.Objects {
 		if len(registryIDs) > 0 && !registryIDs[o.AssetID] {
 			errs = append(errs, fmt.Sprintf("object %q: assetId %q not found in registry", o.ID, o.AssetID))
+		}
+	}
+	for _, c := range sc.Characters {
+		if c.Appearance != nil && c.Appearance.SpriteID != nil && len(registryIDs) > 0 && !registryIDs[*c.Appearance.SpriteID] {
+			errs = append(errs, fmt.Sprintf("character %q: appearance.spriteId %q not in registry", c.ID, *c.Appearance.SpriteID))
 		}
 	}
 
@@ -406,4 +494,86 @@ func ValidateAndParse(data []byte, schemaPath string, registryPath string) (*Sce
 		return nil, []string{fmt.Sprintf("parse after validation: %v", err)}, nil
 	}
 	return &sc, nil, nil
+}
+
+func resolveDefaultSchemaPath() string {
+	candidates := []string{}
+	if root := os.Getenv("GLAM_ROOT"); root != "" {
+		candidates = append(candidates, filepath.Join(root, "schema/scenario.schema.json"))
+	}
+	candidates = append(candidates,
+		"schema/scenario.schema.json",
+		filepath.Join("..", "schema/scenario.schema.json"),
+		filepath.Join("..", "..", "schema/scenario.schema.json"),
+	)
+	if _, file, _, ok := runtime.Caller(0); ok {
+		dir := filepath.Dir(file)
+		candidates = append(candidates,
+			filepath.Join(dir, "..", "..", "schema/scenario.schema.json"),
+			filepath.Join(dir, "..", "schema/scenario.schema.json"),
+		)
+	}
+	if exe, err := os.Executable(); err == nil {
+		base := filepath.Dir(exe)
+		candidates = append(candidates,
+			filepath.Join(base, "schema/scenario.schema.json"),
+			filepath.Join(base, "..", "schema/scenario.schema.json"),
+			filepath.Join(filepath.Dir(base), "schema/scenario.schema.json"),
+		)
+	}
+	if abs, err := filepath.Abs("schema/scenario.schema.json"); err == nil {
+		candidates = append(candidates, abs)
+	}
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			if abs, err := filepath.Abs(c); err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+	return "schema/scenario.schema.json"
+}
+
+// ValidateInteractionFragment validates a single interaction JSON against
+// #/$defs/interaction subschema using Draft2020. It resolves schema path
+// internally via resolveDefaultSchemaPath.
+func ValidateInteractionFragment(raw []byte) (bool, []string, error) {
+	return ValidateInteractionFragmentWithSchema(raw, resolveDefaultSchemaPath())
+}
+
+// ValidateInteractionFragmentWithSchema validates raw against the interaction
+// subschema located at schemaPath.
+func ValidateInteractionFragmentWithSchema(raw []byte, schemaPath string) (bool, []string, error) {
+	if strings.TrimSpace(schemaPath) == "" {
+		schemaPath = resolveDefaultSchemaPath()
+	}
+	var doc interface{}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		return false, []string{fmt.Sprintf("JSON parse error: %v", err)}, nil
+	}
+	var genericMap map[string]interface{}
+	if err := json.Unmarshal(raw, &genericMap); err != nil {
+		return false, []string{fmt.Sprintf("JSON parse error: %v", err)}, nil
+	}
+	forbiddenErrs := checkForbiddenFields(genericMap, "")
+	sch, err := getCompiledInteractionSchema(schemaPath)
+	if err != nil {
+		return false, nil, err
+	}
+	var errs []string
+	errs = append(errs, forbiddenErrs...)
+	if err := sch.Validate(doc); err != nil {
+		if ve, ok := err.(*jsonschema.ValidationError); ok {
+			for _, ce := range flattenValidationErrors(ve) {
+				errs = append(errs, ce)
+			}
+		} else {
+			errs = append(errs, err.Error())
+		}
+	}
+	if len(errs) > 0 {
+		return false, errs, nil
+	}
+	return true, nil, nil
 }

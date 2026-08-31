@@ -122,7 +122,10 @@ func GetTownLayout(cols, rows int) Layout {
 		}
 	}
 	type xs struct{ a, b int }
-	type ys struct{ a, b int; l string }
+	type ys struct {
+		a, b int
+		l    string
+	}
 	xSegs := []xs{{0, rx1 - 1}, {rx1 + 1, rx2 - 1}, {rx2 + 1, cols - 1}}
 	ySegs := []ys{{0, ry1 - 1, "North"}, {ry2 + 1, rows - 1, "South"}}
 	var plots []Plot
