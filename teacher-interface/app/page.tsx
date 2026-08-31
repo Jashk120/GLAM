@@ -11,7 +11,7 @@ export default function TeacherDashboard() {
             <span className="hidden sm:inline text-xs font-medium text-zinc-500 bg-zinc-100 px-2 py-1 rounded-full border">Phase 7 → 8</span>
           </div>
           <a
-            href="http://localhost:5173"
+            href={process.env.NEXT_PUBLIC_CLIENT_URL ?? "http://localhost:5173"}
             target="_blank"
             rel="noreferrer"
             className="text-xs font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1.5 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full border border-indigo-200 transition-colors"
@@ -25,7 +25,7 @@ export default function TeacherDashboard() {
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-zinc-900">Create a learning world</h1>
           <p className="text-sm md:text-[15px] leading-relaxed text-zinc-500 mt-2 max-w-2xl">
-            Describe your lesson in plain language. GLAM generates a playable Phaser world validated against the schema — then students play it instantly at <span className="font-mono text-zinc-700 bg-white px-1.5 py-0.5 rounded border text-xs">localhost:5173</span>.
+            Describe your lesson in plain language. GLAM generates a playable Phaser world validated against the schema — then students play it instantly at <span className="font-mono text-zinc-700 bg-white px-1.5 py-0.5 rounded border text-xs">{process.env.NEXT_PUBLIC_CLIENT_URL ?? "http://localhost:5173"}</span>.
           </p>
         </div>
 

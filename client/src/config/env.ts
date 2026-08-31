@@ -5,7 +5,7 @@
 const viteEnv = (import.meta as unknown as { env: Record<string, string | undefined> }).env;
 
 export const API_CONFIG = {
-  apiBaseUrl: viteEnv.VITE_API_BASE_URL ?? "http://localhost:8080",
+  apiBaseUrl: viteEnv.VITE_API_BASE_URL ?? `http://localhost:${viteEnv.VITE_SERVER_PORT ?? viteEnv.PORT ?? 8080}`,
   generateUrl: "/api/scenario/generate" as const,
   assetsUrl: "/api/assets" as const,
   healthUrl: "/health" as const,

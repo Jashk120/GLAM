@@ -11,9 +11,10 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 SERVER_PORT="${PORT:-${SERVER_PORT:-8080}}"
 CLIENT_PORT="${VITE_PORT:-${CLIENT_PORT:-5173}}"
 TEACHER_PORT="${TEACHER_PORT:-3000}"
-SERVER_LOG="/tmp/glam-server.log"
-CLIENT_LOG="/tmp/glam-client.log"
-TEACHER_LOG="/tmp/glam-teacher.log"
+LOG_DIR="${TMPDIR:-/tmp}"
+SERVER_LOG="$LOG_DIR/glam-server.log"
+CLIENT_LOG="$LOG_DIR/glam-client.log"
+TEACHER_LOG="$LOG_DIR/glam-teacher.log"
 
 cyan()  { printf "\033[36m%s\033[0m\n" "$*"; }
 green() { printf "\033[32m%s\033[0m\n" "$*"; }
@@ -23,11 +24,11 @@ dim()   { printf "\033[2m%s\033[0m\n" "$*"; }
 
 cleanup() {
   yellow "→ shutting down..."
-  jobs -p | xargs -r kill 2>/dev/null || true
+  pids=$(jobs -p 2>/dev/null || true); if [ -n "$pids" ]; then echo "$pids" | xargs kill 2>/dev/null || true; fi
   pkill -P $$ 2>/dev/null || true
   # also kill anything still on our ports
   for p in "$SERVER_PORT" "$CLIENT_PORT" "$TEACHER_PORT"; do
-    lsof -ti :"$p" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+    pids=$(lsof -ti :"$p" 2>/dev/null || true); if [ -n "$pids" ]; then echo "$pids" | xargs kill -9 2>/dev/null || true; fi
   done
   green "bye — logs kept at $SERVER_LOG $CLIENT_LOG $TEACHER_LOG"
 }
@@ -73,9 +74,11 @@ fi
 
 cyan "→ freeing ports :$SERVER_PORT :$CLIENT_PORT :$TEACHER_PORT ..."
 for p in "$SERVER_PORT" "$CLIENT_PORT" "$TEACHER_PORT"; do
-  lsof -ti :"$p" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+  pids=$(lsof -ti :"$p" 2>/dev/null || true); if [ -n "$pids" ]; then echo "$pids" | xargs kill -9 2>/dev/null || true; fi
 done
 sleep 0.5
+
+export CORS_ALLOWED_ORIGINS="http://localhost:$CLIENT_PORT,http://127.0.0.1:$CLIENT_PORT,http://localhost:$TEACHER_PORT,http://127.0.0.1:$TEACHER_PORT"
 
 export PATH="$HOME/go/bin:$HOME/.local/bin:$PATH"
 AIR_BIN="$(command -v air 2>/dev/null || echo "$HOME/go/bin/air")"

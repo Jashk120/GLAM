@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
   const apiTarget = env.VITE_API_BASE_URL ?? `http://localhost:${serverPort}`;
   return {
     server: {
+      host: true,
       port: clientPort,
       proxy: {
         "/api": {
