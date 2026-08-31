@@ -281,25 +281,26 @@ without explicit justification in a comment. Handle and propagate errors (`error
 
 ---
 
-# Before Finishing
+# Before Finishing — CI Parity (MUST NOT FAIL IN CI)
 
-Always run whatever applies to the packages you touched:
+CI is `.github/workflows/registry-sync.yml` and runs exactly:
+`make registry-check` → `make vet` → `make build` (plus `go test ./...` when tests exist).
+`make vet` = `gofmt -l` (fmt-check) + `go vet ./...` (Go's clippy) + `tsc --noEmit` + `eslint`.
+Never finish work that would fail these — always run them locally first.
 
 ```bash
-# server
-cd server && gofmt -l . && go vet ./... && go build -o /tmp/glam-server .
-
-# client
-cd client && npx tsc --noEmit && npm run build
-
-# teacher-interface
-cd teacher-interface && npm run lint && npm run build
-
-# registry sync (if schema/asset-registry.json or client/src/assets/registry.json touched)
+# EXACT CI COMMANDS — run every time before you consider work done:
 make registry-check
+make vet          # gofmt + go vet (clippy equivalent) + tsc + lint — must be 0
+make build        # go build + vite build + next build — must be 0
+go test ./...     # from server/ — run even if you think you didn't touch Go; 0 tests = ok
+# or, verbosely per-package (same as CI):
+cd server && gofmt -l . && go vet ./... && go test ./... && go build -o /tmp/glam-server .
+cd client && npx tsc --noEmit && npm run build
+cd teacher-interface && npm run lint && npm run build
 ```
 
-No test suite currently exists (see Testing) — do not claim tests pass. If one of the above cannot be run in your environment, explicitly state why rather than skipping silently.
+No test suite currently exists (see Testing) — `go test ./...` will report `no test files` which is not a failure; do not claim "tests pass" when nothing ran, just report the output. If one of the above cannot be run in your environment, explicitly state why rather than skipping silently. If you add a test, it becomes part of this gate.
 
 ---
 
