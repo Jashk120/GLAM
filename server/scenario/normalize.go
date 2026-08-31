@@ -203,6 +203,36 @@ func NormalizePlotRefs(data []byte) ([]byte, bool, error) {
 	return out, true, nil
 }
 
+// SanitizeExtraFields strips hallucinated extra properties that violate
+// additionalProperties:false (e.g. initialStats.wisdom, missions[].reward/goal).
+// It does a typed round-trip via Scenario struct which only keeps schema-allowed
+// keys, then returns the cleaned JSON if anything was stripped.
+func SanitizeExtraFields(data []byte) ([]byte, bool, error) {
+	var sc Scenario
+	if err := json.Unmarshal(data, &sc); err != nil {
+		return data, false, nil // let validator report JSON error
+	}
+	cleaned, err := json.Marshal(sc)
+	if err != nil {
+		return data, false, err
+	}
+	// Compare canonical forms to detect if stripping occurred.
+	var origNorm interface{}
+	var cleanNorm interface{}
+	if err := json.Unmarshal(data, &origNorm); err != nil {
+		return data, false, nil
+	}
+	if err := json.Unmarshal(cleaned, &cleanNorm); err != nil {
+		return data, false, err
+	}
+	origBytes, _ := json.Marshal(origNorm)
+	cleanBytes, _ := json.Marshal(cleanNorm)
+	if string(origBytes) == string(cleanBytes) {
+		return data, false, nil
+	}
+	return cleaned, true, nil
+}
+
 func abs(x int) int {
 	if x < 0 {
 		return -x

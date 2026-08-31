@@ -125,8 +125,29 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 					ok = true
 					details = details2
 				} else if err2 == nil && !ok2 {
-					// Still failing but maybe fewer errors — log and keep original details for response
 					log.Printf("auto-fix attempted but still invalid: %v", details2)
+				}
+			}
+		}
+		if !ok && hasAdditionalPropertiesError(details) {
+			if fixed, didFix, ferr := scenario.SanitizeExtraFields(rawBytes); ferr == nil && didFix {
+				// Re-run plot normalization on sanitized output as well, in case both errors co-exist
+				if pf, didPF, _ := scenario.NormalizePlotRefs(fixed); didPF {
+					fixed = pf
+				}
+				if ok2, details2, err2 := scenario.ValidateScenario(fixed, h.SchemaPath, h.RegistryPath); err2 == nil && ok2 {
+					log.Printf("auto-stripped hallucinated fields (was %v) — retry validation passed", details)
+					rawBytes = fixed
+					rawJSON = string(fixed)
+					ok = true
+					details = details2
+				} else if err2 == nil && !ok2 {
+					log.Printf("sanitize attempted but still invalid: %v", details2)
+					// keep sanitized details if it reduced errors
+					if len(details2) < len(details) {
+						details = details2
+						rawBytes = fixed
+					}
 				}
 			}
 		}
@@ -553,6 +574,18 @@ func hasPlotError(details []string) bool {
 			return true
 		}
 		if strings.Contains(d, "clearing") && strings.Contains(d, "not found") {
+			return true
+		}
+	}
+	return false
+}
+
+func hasAdditionalPropertiesError(details []string) bool {
+	for _, d := range details {
+		if strings.Contains(d, "additionalProperties") {
+			return true
+		}
+		if strings.Contains(d, "not allowed") {
 			return true
 		}
 	}

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	promptSchemaTruncateCap   = 8000
-	promptRegistryTruncateCap = 8000
+	promptSchemaTruncateCap   = 20000
+	promptRegistryTruncateCap = 20000
 )
 
 // promptFactualNote: factual sections (schema, registry IDs, layout) are generated from canonical
@@ -45,11 +45,11 @@ func BuildSystemPrompt(schemaJSON []byte, registryJSON []byte) string {
 
 	layoutSection := buildLayoutSection()
 
-	return fmt.Sprintf(`You are GLAM scenario generator. Your output is enforced via structured output (json_schema name=glam_scenario) — ANY property not in the schema will be rejected and you will fail. You must output ONLY valid JSON that validates.
+	return fmt.Sprintf(`You are GLAM scenario generator. Your output will be validated by strict JSON Schema (additionalProperties:false at EVERY level) — ANY property not in the schema will be REJECTED with 400. You must output ONLY valid JSON that validates exactly. No extra keys.
 
 %s
 
-RULES (strict, schema-enforced):
+RULES (strict, schema-enforced — additionalProperties:false EVERYWHERE):
 - Never generate executable code.
 - Only use asset IDs from registry: %s
   - buildings[].typeAssetId must be one of the building asset IDs.
@@ -65,6 +65,12 @@ RULES (strict, schema-enforced):
 - world.size: cols %d-%d, rows %d-%d. world.template must be one of: town, forest, desert, school.
 - ids must match pattern ^[a-z0-9][a-z0-9_-]*$ and be unique across characters, buildings, objects, missions.
 - Never include forbidden fields: code, script, component, bundle at any level.
+- initialStats — ALLOWED KEYS ONLY: coins (0-1000000), lives (0-99), score (0-1000000). Do NOT invent wisdom, xp, health, knowledge, experience, mana etc. Omit initialStats entirely if not needed — engine defaults to coins:40, lives:3, score:0. Example valid: {"coins":50,"lives":3,"score":0}. Invalid (REJECTED): {"wisdom":10} or {"coins":40,"xp":5}.
+- missions[] — ALLOWED KEYS ONLY: id, title, description, trigger, checkAtEnd, requiredStat, done. Do NOT invent reward, goal, objectives, outcome, xp, coinsReward, kind, status, completed, rewardCoins etc. Each mission example valid:
+    {"id":"talk_teacher","title":"Get your budget","description":"Talk to Ms. Rao.","trigger":{"entityId":"ms_rao"},"done":false}
+    {"id":"save_coins","title":"Save wisely","description":"End with >=10 coins.","trigger":{"entityId":"town_bank"},"checkAtEnd":true,"requiredStat":{"stat":"coins","operator":">=","target":10},"done":false}
+  Valid trigger keys ONLY: entityId, interactionId, auto. Valid requiredStat keys ONLY: stat, operator (one of >= > <= < = == !=), target (number).
+- ANY extra property at ANY path (e.g. /initialStats/wisdom, /missions/0/reward, /missions/0/goal) causes immediate rejection (additionalProperties:false). When in doubt, OMIT optional fields rather than invent them.
 - missions[].trigger.entityId must refer to an existing entity id if present.
 - CRITICAL: plot field is TEMPLATE-LOCKED. This is the #1 validation failure cause.
   - If world.template=="town": you may ONLY use plot_1..plot_6 (town plots). NEVER use clearing_*.
