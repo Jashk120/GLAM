@@ -117,12 +117,15 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "validation internal error", nil)
 		return
 	}
+	var warnings []string
 	if !ok {
 		// Best-effort auto-fix for template-locked plot IDs (e.g. clearing_2 in town)
 		if hasPlotError(details) {
 			if fixed, didFix, ferr := scenario.NormalizePlotRefs(rawBytes); ferr == nil && didFix {
 				if ok2, details2, err2 := scenario.ValidateScenario(fixed, h.SchemaPath, h.RegistryPath); err2 == nil && ok2 {
-					log.Printf("auto-fixed plot refs (was %v) — retry validation passed", details)
+					msg := fmt.Sprintf("auto-fixed plot refs (was %v)", details)
+					warnings = append(warnings, msg)
+					log.Printf("%s — retry validation passed", msg)
 					rawBytes = fixed
 					rawJSON = string(fixed)
 					ok = true
@@ -135,11 +138,18 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		if !ok && hasAdditionalPropertiesError(details) {
 			if fixed, didFix, ferr := scenario.SanitizeExtraFields(rawBytes); ferr == nil && didFix {
 				// Re-run plot normalization on sanitized output as well, in case both errors co-exist
-				if pf, didPF, _ := scenario.NormalizePlotRefs(fixed); didPF {
+				didPF := false
+				if pf, okPF, _ := scenario.NormalizePlotRefs(fixed); okPF {
 					fixed = pf
+					didPF = true
 				}
 				if ok2, details2, err2 := scenario.ValidateScenario(fixed, h.SchemaPath, h.RegistryPath); err2 == nil && ok2 {
-					log.Printf("auto-stripped hallucinated fields (was %v) — retry validation passed", details)
+					msg := fmt.Sprintf("stripped additionalProperties (extra fields removed, was %v)", details)
+					warnings = append(warnings, msg)
+					if didPF {
+						warnings = append(warnings, "auto-fixed plot refs after stripping extra fields")
+					}
+					log.Printf("auto-stripped hallucinated fields (was %v) — retry validation passed; warnings=%v", details, warnings)
 					rawBytes = fixed
 					rawJSON = string(fixed)
 					ok = true
@@ -172,6 +182,10 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 
 	resp := map[string]interface{}{
 		"scenario": scenarioObj,
+	}
+	if len(warnings) > 0 {
+		resp["warnings"] = warnings
+		log.Printf("generate warnings: %v", warnings)
 	}
 	// include raw for debugging if needed via query param? Spec says raw?: string optional
 	// we omit unless requested

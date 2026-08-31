@@ -95,7 +95,8 @@ type ShopItem struct {
 }
 
 type InteractionShop struct {
-	Type      string     `json:"type"`
+	Type string `json:"type"`
+	// Currency is free-form (e.g. "coins", "gems", "barter") — bartering allowed, not enum-restricted.
 	Currency  *string    `json:"currency,omitempty"`
 	Items     []ShopItem `json:"items"`
 	Cooldown  *int       `json:"cooldown,omitempty"`

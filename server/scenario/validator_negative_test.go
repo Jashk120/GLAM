@@ -113,6 +113,17 @@ func TestValidateScenario_Negative(t *testing.T) {
 		{name: "mission_trigger_points_to_mission", mutate: func(m map[string]interface{}) {
 			m["missions"].([]interface{})[0].(map[string]interface{})["trigger"] = map[string]interface{}{"entityId": "mission_a"}
 		}, contains: "refers to a mission"},
+		{name: "duplicate_position_character_building", mutate: func(m map[string]interface{}) {
+			m["buildings"].([]interface{})[0].(map[string]interface{})["position"] = map[string]interface{}{"x": 1, "y": 1}
+		}, contains: "duplicate position"},
+		{name: "duplicate_position_two_characters", mutate: func(m map[string]interface{}) {
+			chars := m["characters"].([]interface{})
+			chars = append(chars, map[string]interface{}{"id": "char_b", "name": "Bob", "position": map[string]interface{}{"x": 1, "y": 1}})
+			m["characters"] = chars
+		}, contains: "duplicate position"},
+		{name: "duplicate_position_object_building", mutate: func(m map[string]interface{}) {
+			m["objects"].([]interface{})[0].(map[string]interface{})["position"] = map[string]interface{}{"x": 3, "y": 3}
+		}, contains: "duplicate position"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

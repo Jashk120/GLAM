@@ -380,6 +380,9 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 		addID(m.ID, "mission")
 	}
 
+	// Duplicate position check across characters+buildings+objects (origin x,y only)
+	errs = append(errs, checkDuplicatePositions(&sc)...)
+
 	// Mission trigger IDs refer to existing entities
 	for _, m := range sc.Missions {
 		if m.Trigger != nil && m.Trigger.EntityID != nil {
@@ -400,6 +403,30 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 		return false, errs, nil
 	}
 	return true, nil, nil
+}
+
+func checkDuplicatePositions(sc *Scenario) []string {
+	var errs []string
+	posMap := map[string]string{}
+	addPos := func(id string, pos Position) {
+		key := fmt.Sprintf("%d,%d", pos.X, pos.Y)
+		if prev, ok := posMap[key]; ok {
+			errs = append(errs, fmt.Sprintf("duplicate position (%d,%d) used by %q and %q", pos.X, pos.Y, prev, id))
+		} else {
+			posMap[key] = id
+		}
+	}
+	for _, c := range sc.Characters {
+		addPos(c.ID, c.Position)
+	}
+	for _, b := range sc.Buildings {
+		// For MVP, only check origin position (x,y) duplicate, not full footprint overlap.
+		addPos(b.ID, b.Position)
+	}
+	for _, o := range sc.Objects {
+		addPos(o.ID, o.Position)
+	}
+	return errs
 }
 
 type interactionEntry struct {
