@@ -22,5 +22,7 @@ jobs:
         run: make registry-check
       - name: Vet
         run: make vet
+      - name: Go tests
+        run: cd server && go test ./...
       - name: Build
         run: make build
