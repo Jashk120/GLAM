@@ -65,7 +65,14 @@ npm run preview      # serve dist
 - `src/engine/Game.ts` – Phaser scene (stable API)
 - `src/engine/ScenarioLoader.ts` – fetch/validate + `AssetStreamer.preload` integration
 - `src/assets/AssetStreamer.ts` + `assetRegistry.ts` + `registry.json`
+- `src/arena/` – declarative Arena v1 flow validation, presentation model, and DOM runtime
 - `index.html` – teacher panel + topbar + gameWrap + missionPanel
 - `vite.config.ts` – `/api` proxy to 8080
 
 No backend DB; Go server is read-only from client perspective; no hardcoded keys.
+
+## Arena v1
+
+Choose **🍎 Adding Apples — Arena** in the player selector to run the reference arena. An arena scenario carries an optional `arena` field. The tile-map UI is hidden while `ArenaRuntime` renders a teaching stage above a persistent learning console that handles dialogue, replayable visuals, multiple-choice answers, feedback, and completion.
+
+The runtime accepts a deliberately small, safe component vocabulary: `dialogue`, `teaching` (counting objects plus `add` motion), `multipleChoice`, and `complete`. The schema and client validator reject arbitrary executable fields and invalid transitions. The full authoring contract is in [`../schema/README.md`](../schema/README.md).

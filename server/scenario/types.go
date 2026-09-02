@@ -252,13 +252,14 @@ type Mission struct {
 }
 
 type Scenario struct {
-	ID           string         `json:"id"`
-	Title        string         `json:"title"`
-	Version      *string        `json:"version,omitempty"`
-	World        World          `json:"world"`
-	InitialStats *InitialStats  `json:"initialStats,omitempty"`
-	Characters   []Character    `json:"characters"`
-	Buildings    []Building     `json:"buildings"`
-	Objects      []ObjectEntity `json:"objects"`
-	Missions     []Mission      `json:"missions"`
+	ID           string          `json:"id"`
+	Title        string          `json:"title"`
+	Version      *string         `json:"version,omitempty"`
+	World        World           `json:"world"`
+	InitialStats *InitialStats   `json:"initialStats,omitempty"`
+	Characters   []Character     `json:"characters"`
+	Buildings    []Building      `json:"buildings"`
+	Objects      []ObjectEntity  `json:"objects"`
+	Missions     []Mission       `json:"missions"`
+	Arena        json.RawMessage `json:"arena,omitempty"`
 }

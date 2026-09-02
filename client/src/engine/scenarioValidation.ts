@@ -9,6 +9,7 @@ import {
   WORLD_ROWS_MIN,
 } from "../world/worldConstants";
 import { VALID_INTERACTION_TYPES } from "../types/interactionTypes";
+import { validateArenaScript } from "../arena/ArenaFlow";
 
 const FORBIDDEN_FIELDS = new Set(["code", "script", "component", "bundle"]);
 
@@ -147,6 +148,7 @@ export function validateScenarioObject(obj: unknown): asserts obj is import("../
   assert(typeof r["id"] === "string" && (r["id"] as string).length > 0, "Scenario.id is required (non-empty string)");
   assert(/^[a-z0-9][a-z0-9_-]*$/.test(r["id"] as string), "Scenario.id must match ^[a-z0-9][a-z0-9_-]*$");
   assert(typeof r["title"] === "string" && (r["title"] as string).length > 0, "Scenario.title is required");
+  if (r["arena"] !== undefined) validateArenaScript(r["arena"]);
 
   assert(isRecord(r["world"]), "Scenario.world is required");
   const world = r["world"] as Record<string, unknown>;

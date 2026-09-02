@@ -1,0 +1,71 @@
+{
+  "id": "adding-apples-arena",
+  "title": "Adding Apples Arena",
+  "version": "1.0",
+  "world": {
+    "template": "school",
+    "spawn": { "x": 0, "y": 0 },
+    "size": { "cols": 8, "rows": 8 },
+    "theme": "school"
+  },
+  "characters": [],
+  "buildings": [],
+  "objects": [],
+  "missions": [],
+  "arena": {
+    "version": "1",
+    "id": "adding-apples",
+    "title": "Adding Apples",
+    "theme": "meadow",
+    "cast": {
+      "student": { "variant": "girl", "name": "Ava", "expression": "thinking" },
+      "mascot": { "id": "nova-fox", "name": "Nova", "expression": "encouraging", "side": "right" }
+    },
+    "flow": {
+      "start": "welcome",
+      "nodes": {
+        "welcome": {
+          "id": "welcome",
+          "type": "dialogue",
+          "speaker": "mascot",
+          "text": "Let’s watch what happens when we find more apples.",
+          "next": "show-apples"
+        },
+        "show-apples": {
+          "id": "show-apples",
+          "type": "teaching",
+          "speaker": "mascot",
+          "caption": "We start with 3 apples. Then we find 2 more apples.",
+          "stage": {
+            "visual": { "type": "countingObjects", "object": "apple", "count": 3 },
+            "motion": [{ "type": "add", "count": 2, "target": "stage" }],
+            "replayable": true
+          },
+          "next": "answer"
+        },
+        "answer": {
+          "id": "answer",
+          "type": "multipleChoice",
+          "prompt": "How many apples are there altogether?",
+          "options": [
+            { "id": "four", "text": "4" },
+            { "id": "five", "text": "5" },
+            { "id": "six", "text": "6" },
+            { "id": "seven", "text": "7" }
+          ],
+          "correctOptionIds": ["five"],
+          "feedback": {
+            "correct": { "mascotText": "Exactly! Three apples plus two apples makes five.", "next": "complete" },
+            "incorrect": { "mascotText": "Try counting the apples in the teaching space one more time." }
+          }
+        },
+        "complete": {
+          "id": "complete",
+          "type": "complete",
+          "title": "Great counting!",
+          "summary": "You used addition to find the total."
+        }
+      }
+    }
+  }
+}

@@ -49,6 +49,15 @@ func BuildSystemPrompt(schemaJSON []byte, registryJSON []byte) string {
 
 %s
 
+ROOT OBJECT — REQUIRED FOR EVERY GAME (even an Arena game):
+{
+  "id":"lowercase-id",
+  "title":"Lesson title",
+  "world":{"template":"school","spawn":{"x":1,"y":1},"size":{"cols":8,"rows":8}},
+  "characters":[], "buildings":[], "objects":[], "missions":[]
+}
+arena is an OPTIONAL field inside this root object. If you use arena, retain every root field above and put only valid arena fields inside it. Never put characters, objects, background, or activities inside arena; never return arena as the root object.
+
 RULES (strict, schema-enforced — additionalProperties:false EVERYWHERE):
 - Never generate executable code.
 - Only use asset IDs from registry: %s
@@ -61,6 +70,7 @@ RULES (strict, schema-enforced — additionalProperties:false EVERYWHERE):
   - math: {type:"math", question, answer, tolerance?, hint?}
   - shop: {type:"shop", items[{name,price,icon?}], currency?}
   - information: {type:"information", content, title?, image?}
+- Use the optional arena object only when the request explicitly calls for a guided, screen-based lesson rather than the map. Arena is a fixed declarative vocabulary: dialogue, teaching, multipleChoice, complete. Do not emit HTML, component names, code, asset paths, or new arena node types. Follow the arena definitions in the schema exactly.
 - Positions must be within world.size bounds: 0 <= x < cols, 0 <= y < rows. Spawn must be inside bounds.
 - world.size: cols %d-%d, rows %d-%d. world.template must be one of: town, forest, desert, school.
 - ids must match pattern ^[a-z0-9][a-z0-9_-]*$ and be unique across characters, buildings, objects, missions.

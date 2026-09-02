@@ -287,9 +287,21 @@ func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJS
 	if c.APIKey == "" {
 		return "", fmt.Errorf("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
 	}
+	return c.generateScenarioJSON(BuildSystemPrompt(schemaJSON, registryJSON), prompt, 0.7)
+}
 
-	systemPrompt := BuildSystemPrompt(schemaJSON, registryJSON)
+// Repair makes one low-temperature attempt to correct a rejected scenario.
+// The handler validates the returned JSON before it can reach a player.
+func (c *OpenRouterClient) Repair(invalidJSON string, details []string, schemaJSON []byte, registryJSON []byte) (string, error) {
+	if c.APIKey == "" {
+		return "", fmt.Errorf("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
+	}
+	systemPrompt := "You repair rejected GLAM scenario JSON. Return only a complete replacement JSON object. " + BuildSystemPrompt(schemaJSON, registryJSON)
+	userPrompt := fmt.Sprintf("The previous JSON was rejected. Fix every listed issue; do not explain.\nValidation errors:\n- %s\nRejected JSON:\n%s", strings.Join(details, "\n- "), invalidJSON)
+	return c.generateScenarioJSON(systemPrompt, userPrompt, 0.1)
+}
 
+func (c *OpenRouterClient) generateScenarioJSON(systemPrompt, userPrompt string, temperature float64) (string, error) {
 	reqBody := map[string]interface{}{
 		"model": c.Model,
 		"messages": []map[string]interface{}{
@@ -299,11 +311,11 @@ func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJS
 			},
 			{
 				"role":    "user",
-				"content": prompt,
+				"content": userPrompt,
 			},
 		},
 		"max_tokens":  envMaxTokens(),
-		"temperature": 0.7,
+		"temperature": temperature,
 		"response_format": map[string]interface{}{
 			"type": "json_object",
 		},
@@ -327,7 +339,11 @@ func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJS
 		req.Header.Set("X-Title", "GLAM")
 	}
 
-	resp, err := c.HTTPClient.Do(req)
+	client := c.HTTPClient
+	if client == nil {
+		client = &http.Client{Timeout: envTimeout()}
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("openrouter request failed: %w", err)
 	}
@@ -352,7 +368,11 @@ func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJS
 		return "", err
 	}
 
-	// Trim markdown fences if present (some models wrap JSON despite json_object)
+	return normalizeScenarioJSON(text)
+}
+
+func normalizeScenarioJSON(text string) (string, error) {
+	// Trim markdown fences if present (some models wrap JSON despite JSON mode).
 	text = strings.TrimSpace(text)
 	if strings.HasPrefix(text, "```") {
 		lines := strings.Split(text, "\n")
@@ -365,7 +385,6 @@ func (c *OpenRouterClient) Generate(prompt string, schemaJSON []byte, registryJS
 		text = strings.TrimSpace(strings.Join(lines, "\n"))
 		text = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(text), "json"))
 	}
-
 	var js json.RawMessage
 	if err := json.Unmarshal([]byte(text), &js); err != nil {
 		start := strings.Index(text, "{")

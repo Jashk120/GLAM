@@ -21,6 +21,7 @@ Server listens on `:8080` (override with `PORT` env).
 
 ## Env
 
+- `LLM_PROVIDER` (optional — `openrouter`, the default, or `ollama` for a local Ollama model)
 - `OPENROUTER_API_KEY` (required for `/api/scenario/generate`) — also accepts `OPENCODE_API_KEY` for backward compat
 - `OPENROUTER_ENDPOINT` (default `https://openrouter.ai/api/v1/chat/completions`)
 - `OPENROUTER_MODEL` (default `google/gemma-4-31b-it:free`)
@@ -32,6 +33,19 @@ Server listens on `:8080` (override with `PORT` env).
 - `PORT` (default `8080`)
 - `GLAM_ROOT` (optional — absolute or relative path to repo root for schema/registry and `.env` lookup)
 - `CORS_ALLOWED_ORIGINS` (optional — comma-separated allowlist; defaults to `http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000`; header set only when `Origin` matches)
+
+### Local Ollama
+
+Ollama runs locally and does not need an API key. Start Ollama (`ollama serve`, if it is not already running), then set:
+
+```bash
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen2.5-coder:14b
+```
+
+Optional settings: `OLLAMA_ENDPOINT` (default `http://127.0.0.1:11434/api/chat`) and `OLLAMA_TIMEOUT` (default `180s`; accepts a Go duration such as `5m` or seconds). The Teacher interface uses this provider for `POST /api/scenario/generate`; the separate tool-calling `/api/chat` endpoint remains OpenRouter-only.
+
+If a provider's first draft fails the strict scenario validator, GLAM performs one low-temperature repair request containing the rejected JSON and the validation errors. It returns a game only if that repaired JSON also validates. For OpenRouter, this repair request is sent to OpenRouter; for Ollama, it stays on the local machine.
 
 > Legacy `OPENCODE_*` vars still work as fallback but are deprecated — use `OPENROUTER_*`.
 
@@ -52,4 +66,4 @@ JSON parse → JSON Schema (santhosh-tekuri/jsonschema) → asset-ID → activit
 
 ## LLM Provider
 
-Provider is now **OpenRouter** (`https://openrouter.ai/api/v1/chat/completions`) with model `google/gemma-4-31b-it:free` by default. Override via `OPENROUTER_MODEL`. Request uses OpenAI-compatible `chat/completions` with `response_format: {type:"json_object"}`.
+The default provider is **OpenRouter** (`https://openrouter.ai/api/v1/chat/completions`) with model `google/gemma-4-31b-it:free`. Set `LLM_PROVIDER=ollama` to use a locally installed Ollama model instead. OpenRouter requests use OpenAI-compatible `chat/completions` with `response_format: {type:"json_object"}`; Ollama requests use `/api/chat` with `format:"json"`.

@@ -23,6 +23,7 @@ type Handler struct {
 	SchemaJSON   []byte
 	RegistryJSON []byte
 	LLM          *llm.OpenCodeClient
+	Generator    llm.ScenarioGenerator
 }
 
 func NewHandler(schemaPath, registryPath string) (*Handler, error) {
@@ -34,6 +35,10 @@ func NewHandler(schemaPath, registryPath string) (*Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("load registry: %w", err)
 	}
+	generator, err := llm.NewScenarioGenerator()
+	if err != nil {
+		return nil, fmt.Errorf("configure scenario generator: %w", err)
+	}
 
 	return &Handler{
 		SchemaPath:   schemaPath,
@@ -41,6 +46,7 @@ func NewHandler(schemaPath, registryPath string) (*Handler, error) {
 		SchemaJSON:   schemaJSON,
 		RegistryJSON: registryJSON,
 		LLM:          llm.NewClient(),
+		Generator:    generator,
 	}, nil
 }
 
@@ -89,13 +95,20 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.LLM.APIKey == "" {
-		log.Println("OPENROUTER_API_KEY not set (also checked OPENCODE_API_KEY)")
-		writeError(w, http.StatusInternalServerError, "server not configured: OPENROUTER_API_KEY missing", nil)
+	generator := h.Generator
+	if generator == nil {
+		generator = h.LLM
+	}
+	if !generator.IsConfigured() {
+		if _, ok := generator.(*llm.OpenRouterClient); ok {
+			writeError(w, http.StatusInternalServerError, "server not configured: OPENROUTER_API_KEY missing", nil)
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "server not configured: LLM provider missing", nil)
 		return
 	}
 
-	rawJSON, err := h.LLM.Generate(prompt, h.SchemaJSON, h.RegistryJSON)
+	rawJSON, err := generator.Generate(prompt, h.SchemaJSON, h.RegistryJSON)
 	if err != nil {
 		// Do not leak API key
 		log.Printf("LLM generate error: %v", err)
@@ -119,8 +132,24 @@ func (h *Handler) HandleGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	var warnings []string
 	if !ok {
+		if repairer, canRepair := generator.(llm.ScenarioRepairer); canRepair {
+			if repairedJSON, repairErr := repairer.Repair(rawJSON, details, h.SchemaJSON, h.RegistryJSON); repairErr == nil {
+				repairedBytes := []byte(repairedJSON)
+				if repairedOK, repairedDetails, repairedErr := scenario.ValidateScenario(repairedBytes, h.SchemaPath, h.RegistryPath); repairedErr == nil && repairedOK {
+					rawJSON = repairedJSON
+					rawBytes = repairedBytes
+					ok = true
+					details = repairedDetails
+					warnings = append(warnings, "repaired local model output after schema validation")
+				} else if repairedErr == nil && !repairedOK {
+					log.Printf("local model repair still invalid: %v", repairedDetails)
+				}
+			} else {
+				log.Printf("local model repair failed: %v", repairErr)
+			}
+		}
 		// Best-effort auto-fix for template-locked plot IDs (e.g. clearing_2 in town)
-		if hasPlotError(details) {
+		if !ok && hasPlotError(details) {
 			if fixed, didFix, ferr := scenario.NormalizePlotRefs(rawBytes); ferr == nil && didFix {
 				if ok2, details2, err2 := scenario.ValidateScenario(fixed, h.SchemaPath, h.RegistryPath); err2 == nil && ok2 {
 					msg := fmt.Sprintf("auto-fixed plot refs (was %v)", details)

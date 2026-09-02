@@ -180,6 +180,7 @@ export interface Scenario {
   version?: string;
   world: World;
   initialStats?: InitialStats;
+  arena?: import("../arena/arenaTypes").ArenaScript;
   characters: Character[];
   buildings: Building[];
   objects: ObjectEntity[];

@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "./assets/storageKeys";
 import { TOAST_DURATION_MS, TOAST_COLORS } from "./engine/timingConstants";
 import { TILE } from "./world/renderConstants";
 import { API_CONFIG } from "./config/env";
+import { ArenaRuntime } from "./arena/ArenaRuntime";
 
 const statsBar = document.getElementById("statsBar") as HTMLElement;
 const missionList = document.getElementById("missionList") as HTMLElement;
@@ -19,9 +20,14 @@ const titleEl = document.getElementById("scenarioTitle") as HTMLElement;
 const selectEl = document.getElementById("scenarioSelect") as HTMLSelectElement;
 const restartBtn = document.getElementById("restartBtn") as HTMLButtonElement;
 const assetStatus = document.getElementById("assetStatus") as HTMLElement;
+const arenaRoot = document.getElementById("arenaRoot") as HTMLElement;
+const gameWrap = document.getElementById("gameWrap") as HTMLElement;
+const missionPanel = document.getElementById("missionPanel") as HTMLElement;
+const controlsHint = document.getElementById("controlsHint") as HTMLElement;
 
 let gameScene: GameScene | null = null;
 let currentScenario: Scenario | null = null;
+let arenaRuntime: ArenaRuntime | null = null;
 let currentSource = "/scenarios/example.json";
 
 const generatedStore = new Map<string, Scenario>();
@@ -95,10 +101,27 @@ async function bootScenario(source: string | object): Promise<void> {
     const sc = await loadScenario(source);
     currentScenario = sc;
     if (!gameScene) return;
+    titleEl.textContent = sc.title;
+    if (sc.arena) {
+      gameWrap.hidden = true;
+      missionPanel.hidden = true;
+      controlsHint.hidden = true;
+      gameScene.scene.pause();
+      arenaRuntime?.destroy();
+      arenaRuntime = new ArenaRuntime(arenaRoot, sc.arena);
+      arenaRuntime.mount();
+      updateAssetStatus(sc);
+      return;
+    }
+    arenaRuntime?.destroy();
+    arenaRuntime = null;
+    gameWrap.hidden = false;
+    missionPanel.hidden = false;
+    controlsHint.hidden = false;
+    gameScene.scene.resume();
     const { w, h } = { w: sc.world.size.cols * TILE, h: sc.world.size.rows * TILE };
     game.scale.resize(w, h);
     await gameScene.loadScenarioData(sc);
-    titleEl.textContent = sc.title;
     updateAssetStatus(sc);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

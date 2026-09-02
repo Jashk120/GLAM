@@ -88,6 +88,26 @@ Every `interaction` has `type` and common optional fields `cooldown` (ms, int �
 
 No other `type` values are allowed. Unknown interaction types will be rejected by both JSON Schema and Go.
 
+### Arena template (optional)
+
+`arena` is an optional, versioned learning-screen contract. When present, the client renders the arena instead of the tile-map world: a visual teaching stage at the top, student and Nova mascot at its sides, and a persistent learning console at the bottom. It is intentionally declarative: the LLM may choose only the supported node types and fields, never a component name, code, HTML, asset path, or bundle.
+
+```json
+"arena": {
+  "version": "1",
+  "id": "adding-apples",
+  "title": "Adding Apples",
+  "theme": "meadow",
+  "cast": {
+    "student": { "variant": "girl", "name": "Ava" },
+    "mascot": { "id": "nova-fox", "name": "Nova", "side": "right" }
+  },
+  "flow": { "start": "welcome", "nodes": { } }
+}
+```
+
+Supported `flow.nodes` are `dialogue`, `teaching`, `multipleChoice`, and `complete`. Version 1 teaching visuals support only bounded `countingObjects` (`apple`, `coin`, or `star`) with bounded `add` motions. `multipleChoice` contains 2–5 options, one or more correct option IDs, and safe text feedback. The server checks that every transition points to a real node, node keys match IDs, and a `complete` node is reachable. See [the runnable example](../scenarios/adding-apples-arena.json).
+
 ---
 
 ## Rules for LLM output
@@ -99,6 +119,7 @@ No other `type` values are allowed. Unknown interaction types will be rejected b
 5. **Keep `additionalProperties: false` in mind.** Extra keys (e.g. `missionId` on entities — present in the HTML demo — is now `missions[].trigger.entityId`) will fail validation. Follow this schema exactly.
 6. **Missions.** Use `trigger.entityId` to link a mission to the entity whose interaction completes it. `checkAtEnd: true` missions are evaluated after the others (e.g. savings threshold).
 7. **Version.** Omit `version` → defaults to `1.0`.
+8. **Arena only when requested.** Use `arena` for a guided, screen-based lesson rather than a map-based activity. Use its fixed node vocabulary; do not attempt to define new component types or send executable/UI markup.
 
 ---
 

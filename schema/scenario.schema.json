@@ -34,6 +34,7 @@
     },
     "world": { "$ref": "#/$defs/world" },
     "initialStats": { "$ref": "#/$defs/initialStats" },
+    "arena": { "$ref": "#/$defs/arena" },
     "characters": {
       "type": "array",
       "minItems": 0,
@@ -497,6 +498,131 @@
         "auto": { "type": "boolean" },
         "onCorrect": { "$ref": "#/$defs/outcome" },
         "onWrong": { "$ref": "#/$defs/outcome" }
+      }
+    },
+    "arena": {
+      "type": "object",
+      "additionalProperties": false,
+      "propertyNames": { "not": { "enum": ["code", "script", "component", "bundle"] } },
+      "required": ["version", "id", "title", "theme", "cast", "flow"],
+      "properties": {
+        "version": { "const": "1" },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "theme": { "enum": ["meadow", "town", "forest", "school", "desert"] },
+        "cast": { "$ref": "#/$defs/arenaCast" },
+        "flow": { "$ref": "#/$defs/arenaFlow" }
+      }
+    },
+    "arenaCast": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["student", "mascot"],
+      "properties": {
+        "student": {
+          "type": "object", "additionalProperties": false, "required": ["variant"],
+          "properties": {
+            "variant": { "enum": ["girl", "boy", "neutral"] },
+            "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "expression": { "$ref": "#/$defs/arenaEmotion" }
+          }
+        },
+        "mascot": {
+          "type": "object", "additionalProperties": false, "required": ["id", "name"],
+          "properties": {
+            "id": { "const": "nova-fox" },
+            "name": { "type": "string", "minLength": 1, "maxLength": 64 },
+            "expression": { "$ref": "#/$defs/arenaEmotion" },
+            "side": { "const": "right" }
+          }
+        }
+      }
+    },
+    "arenaEmotion": { "enum": ["neutral", "happy", "thinking", "encouraging", "celebrating", "concerned"] },
+    "arenaFlow": {
+      "type": "object", "additionalProperties": false, "required": ["start", "nodes"],
+      "properties": {
+        "start": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 },
+        "nodes": {
+          "type": "object", "minProperties": 1, "maxProperties": 30,
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9_-]*$" },
+          "additionalProperties": { "$ref": "#/$defs/arenaNode" }
+        }
+      }
+    },
+    "arenaNode": {
+      "oneOf": [
+        { "$ref": "#/$defs/arenaDialogueNode" },
+        { "$ref": "#/$defs/arenaTeachingNode" },
+        { "$ref": "#/$defs/arenaMultipleChoiceNode" },
+        { "$ref": "#/$defs/arenaCompleteNode" }
+      ]
+    },
+    "arenaDialogueNode": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "speaker", "text", "next"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 },
+        "type": { "const": "dialogue" }, "speaker": { "enum": ["student", "mascot", "narrator"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "emotion": { "$ref": "#/$defs/arenaEmotion" }, "mode": { "enum": ["console", "bubble", "both"] },
+        "continueLabel": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "next": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }
+      }
+    },
+    "arenaTeachingNode": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "stage", "next"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }, "type": { "const": "teaching" },
+        "stage": { "$ref": "#/$defs/arenaStage" },
+        "next": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }
+      }
+    },
+    "arenaStage": {
+      "type": "object", "additionalProperties": false, "required": ["visual"],
+      "properties": {
+        "visual": {
+          "type": "object", "additionalProperties": false, "required": ["type", "object", "count"],
+          "properties": { "type": { "const": "countingObjects" }, "object": { "enum": ["apple", "coin", "star"] }, "count": { "type": "integer", "minimum": 0, "maximum": 20 } }
+        },
+        "motion": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/arenaAddMotion" } },
+        "caption": { "type": "string", "minLength": 1, "maxLength": 500 }, "replayable": { "type": "boolean" }
+      }
+    },
+    "arenaAddMotion": {
+      "type": "object", "additionalProperties": false, "required": ["type", "count", "target"],
+      "properties": { "type": { "const": "add" }, "count": { "type": "integer", "minimum": 1, "maximum": 20 }, "target": { "const": "stage" } }
+    },
+    "arenaMultipleChoiceNode": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "prompt", "options", "correctOptionIds", "feedback"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }, "type": { "const": "multipleChoice" },
+        "prompt": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "options": { "type": "array", "minItems": 2, "maxItems": 5, "items": { "$ref": "#/$defs/arenaOption" } },
+        "correctOptionIds": { "type": "array", "minItems": 1, "maxItems": 5, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 } },
+        "feedback": { "$ref": "#/$defs/arenaFeedback" }
+      }
+    },
+    "arenaOption": {
+      "type": "object", "additionalProperties": false, "required": ["id", "text"],
+      "properties": { "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }, "text": { "type": "string", "minLength": 1, "maxLength": 200 } }
+    },
+    "arenaFeedback": {
+      "type": "object", "additionalProperties": false, "required": ["correct", "incorrect"],
+      "properties": { "correct": { "$ref": "#/$defs/arenaFeedbackMessage" }, "incorrect": { "$ref": "#/$defs/arenaFeedbackMessage" } }
+    },
+    "arenaFeedbackMessage": {
+      "type": "object", "additionalProperties": false, "required": ["mascotText"],
+      "properties": {
+        "mascotText": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "next": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 },
+        "retryPolicy": { "enum": ["immediate", "afterHint", "continue"] }
+      }
+    },
+    "arenaCompleteNode": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "title", "summary"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]*$", "maxLength": 64 }, "type": { "const": "complete" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 }, "summary": { "type": "string", "minLength": 1, "maxLength": 1000 }
       }
     }
   }

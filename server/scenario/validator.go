@@ -142,6 +142,7 @@ func ValidateScenario(data []byte, schemaPath string, registryPath string) (bool
 
 	// Append forbidden field errors
 	errs = append(errs, forbiddenErrs...)
+	errs = append(errs, validateArenaReferences(genericMap["arena"])...)
 
 	// Parse into typed struct for deeper checks
 	var sc Scenario
